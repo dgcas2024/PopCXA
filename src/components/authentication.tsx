@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -635,7 +637,7 @@ const Authentication = () => {
                 Messages :
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {(digitalContact?.messages || []).map((item: any) => {
-                    if (item?.direction == "inbound") {
+                    if (item?.direction === "inbound") {
                       return <div>{item.messageContent.text}</div>;
                     } else {
                       return (

@@ -71,14 +71,14 @@
 
             function addCustomerChatItem(customerChatData) {
                 const html = `
-         <div class="customer-preview">
-             <img src="${customerChatData.avatar}" alt="Customer" class="avatar">
-             <div class="preview-details">
-                 <div>${customerChatData.channel} - ${customerChatData.name}</div>
-                 <div class="preview-message">${customerChatData.previewLatestMessage}</div>
-                 <div class="message-time time-auto-update" data-time="${customerChatData.timeLatestMessage}">${formatDateTime(customerChatData.timeLatestMessage)}</div>
-             </div>
-         </div>`;
+                 <div class="customer-preview">
+                     <img src="${customerChatData.avatar}" alt="Customer" class="avatar">
+                     <div class="preview-details">
+                         <div>${customerChatData.channel} - ${customerChatData.name}</div>
+                         <div class="preview-message">${customerChatData.previewLatestMessage}</div>
+                         <div class="message-time time-auto-update" data-time="${customerChatData.timeLatestMessage}">${formatDateTime(customerChatData.timeLatestMessage)}</div>
+                     </div>
+                 </div>`;
                 const elm = document.createElement('div');
                 elm.className = 'customer-item';
                 elm.innerHTML = html;

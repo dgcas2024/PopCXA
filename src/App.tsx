@@ -211,7 +211,7 @@ const App = () => {
 
     const [messages, setMessages] = useState<Array<any>>([]);
     function addMessage(chater: any, content: string, type: string, mediaType: string | null = null, mediaUrl: string | null = null) {
-        if (content === "") {
+        if (content !== "") {
             let media: any = null;
             if (mediaType && mediaUrl) {
                 switch (mediaType) {
@@ -235,14 +235,13 @@ const App = () => {
                         {content}
                         {media}
                         <div className="message-name-time">
-                            <span>{chater.name}</span> • <span className="time-auto-update" data-time={chater.time}>${formatDateTime(chater.time)}</span>
+                            <span>{chater.name}</span> • <span className="time-auto-update" data-time={chater.time}>{formatDateTime(chater.time)}</span>
                         </div>
                     </div>
                 </div>
             )
             setMessages(arr => {
-                arr.push(html);
-                return arr;
+                return [...arr, html];
             });
         }
     }
@@ -252,37 +251,34 @@ const App = () => {
             alert('error');
             return;
         }
-        const input = document.getElementById('messageInput');
-        if (input != null) {
-            const message = input.ariaValueText?.trim();
-            if (message) {
-                addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, message, 'sent');
-                input.ariaValueText = '';
-                // Simulate customer reply after 1-3 seconds
-                setTimeout(() => {
-                    const replies = [
-                        "Thank you for your message!",
-                        "I understand, let me check that for you.",
-                        "Could you please provide more details?",
-                        "I'll look into this right away."
-                    ];
-                    const randomReply = replies[Math.floor(Math.random() * replies.length)];
-                    addMessage({ name: currentCustomerChatData.name, avatar: currentCustomerChatData.avatar, time: new Date().getTime() }, randomReply, 'received');
-                }, 1000 + Math.random() * 2000);
-            }
+        const message = messageInputRef.current?.value;
+        if (message) {
+            addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, message, 'sent');
+            messageInputRef.current.value = '';
+            // Simulate customer reply after 1-3 seconds
+            setTimeout(() => {
+                const replies = [
+                    "Thank you for your message!",
+                    "I understand, let me check that for you.",
+                    "Could you please provide more details?",
+                    "I'll look into this right away."
+                ];
+                const randomReply = replies[Math.floor(Math.random() * replies.length)];
+                addMessage({ name: currentCustomerChatData.name, avatar: currentCustomerChatData.avatar, time: new Date().getTime() }, randomReply, 'received');
+            }, 1000 + Math.random() * 2000);
         }
     }
 
-    const [currentCustomerChatData, setCurrentCustomerChatData] = useState<any>({
-        avatar: "https://icons.iconarchive.com/icons/martz90/circle/48/video-camera-icon.png",
-        name: "N/A",
-        channel: "N/A"
-    });
+    const [currentCustomerChatData, setCurrentCustomerChatData] = useState<any>(null);
+    function selectCustomerChatItem(customerChatData: any) {
+        setMessages([]);
+        setCurrentCustomerChatData(customerChatData);
+    }
 
     const [customerChatItems, setCustomerChatItems] = useState<Array<any>>([]);
     function addCustomerChatItem(customerChatData: any) {
         const html = (
-            <div className="customer-item" onClick={() => setCurrentCustomerChatData(customerChatData)}>
+            <div className="customer-item" onClick={() => selectCustomerChatItem(customerChatData)}>
                 <div className="customer-preview">
                     <img src={customerChatData.avatar} alt="" className="avatar"></img>
                     <div className="preview-details">
@@ -294,14 +290,20 @@ const App = () => {
             </div>
         )
         setCustomerChatItems(arr => {
-            arr.push(html);
-            return arr;
+            return [...arr, html];
         });
     }
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+    const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const _currentCustomerChatData = currentCustomerChatData ?? {
+        avatar: "https://icons.iconarchive.com/icons/martz90/circle/48/video-camera-icon.png",
+        name: "N/A",
+        channel: "N/A"
+    };
 
     return (
         <div className="app">
@@ -334,10 +336,10 @@ const App = () => {
             <div className="chat-container">
                 <div className="chat-header">
                     <div className="profile-info">
-                        <img src={currentCustomerChatData.avatar} alt="Customer" className="avatar" />
+                        <img src={_currentCustomerChatData.avatar} alt="Customer" className="avatar" />
                         <div>
-                            <div className="profile-info-name">{currentCustomerChatData.name}</div>
-                            <div className="message-time">{currentCustomerChatData.channel}</div>
+                            <div className="profile-info-name">{_currentCustomerChatData.name}</div>
+                            <div className="message-time">{_currentCustomerChatData.channel}</div>
                         </div>
                     </div>
                 </div>
@@ -364,7 +366,7 @@ const App = () => {
                         <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
                     </div>
                     <div className="input-container">
-                        <textarea onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
+                        <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
                         <button className="send-btn" onClick={sendMessage}>Send</button>
                     </div>
                 </div>

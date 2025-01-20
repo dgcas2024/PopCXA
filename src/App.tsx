@@ -152,6 +152,7 @@ const App = () => {
         const files = event.target.files;
         for (const file of files) {
             addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, `File attached: ${file.name}`, 'sent');
+            event.target.value = '';
         }
     }
 
@@ -161,6 +162,7 @@ const App = () => {
             const reader = new FileReader();
             reader.onload = function (e: any) {
                 addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, 'Image sent:', 'sent', 'image', e.target.result);
+                event.target.value = '';
             };
             reader.readAsDataURL(file);
         }
@@ -172,6 +174,7 @@ const App = () => {
             const reader = new FileReader();
             reader.onload = function (e: any) {
                 addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, 'Video sent:', 'sent', 'video', e.target.result);
+                event.target.value = '';
             };
             reader.readAsDataURL(file);
         }
@@ -210,6 +213,11 @@ const App = () => {
     }
 
     const [messages, setMessages] = useState<Array<any>>([]);
+    useEffect(() => {
+        if (messagesDivRef?.current) {
+            messagesDivRef.current.scrollTop = 9999;
+        }
+    }, [messages]);
     function addMessage(chater: any, content: string, type: string, mediaType: string | null = null, mediaUrl: string | null = null) {
         if (content !== "") {
             let media: any = null;
@@ -276,6 +284,11 @@ const App = () => {
     }
 
     const [customerChatItems, setCustomerChatItems] = useState<Array<any>>([]);
+    useEffect(() => {
+        if (customersDivRef?.current) {
+            customersDivRef.current.scrollTop = 0;
+        }
+    }, [customerChatItems]);
     function addCustomerChatItem(customerChatData: any) {
         const html = (
             <div className="customer-item" onClick={() => selectCustomerChatItem(customerChatData)}>
@@ -290,7 +303,7 @@ const App = () => {
             </div>
         )
         setCustomerChatItems(arr => {
-            return [...arr, html];
+            return [html, ...arr];
         });
     }
 
@@ -298,6 +311,9 @@ const App = () => {
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const messagesDivRef = useRef<HTMLDivElement>(null);
+    const customersDivRef = useRef<HTMLDivElement>(null);
 
     const _currentCustomerChatData = currentCustomerChatData ?? {
         avatar: "https://icons.iconarchive.com/icons/martz90/circle/48/video-camera-icon.png",
@@ -307,7 +323,7 @@ const App = () => {
 
     return (
         <div className="app">
-            <div className="customers-list sidebar-collapse">
+            <div ref={customersDivRef} className="customers-list sidebar-collapse">
                 <span id="sidebar-collapse-close" className="sidebar-collapse-btn">&lt;&lt;</span>
                 <span id="sidebar-collapse-open" className="sidebar-collapse-btn">&gt;&gt;</span>
                 <div className="agent-profile">
@@ -344,7 +360,7 @@ const App = () => {
                     </div>
                 </div>
 
-                <div className="chat-messages" id="chatMessages">
+                <div ref={messagesDivRef} className="chat-messages" id="chatMessages">
                     {messages.map((item, index) => (
                         <React.Fragment key={index}>
                             {item}

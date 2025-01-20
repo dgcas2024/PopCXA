@@ -45,6 +45,7 @@ const App = () => {
                     break;
                 case AuthStatus.AUTHENTICATED:
                     setAuthState("AUTHENTICATED");
+                    window.location.href = '/';
                     setAuthToken((data.response as AuthToken).accessToken);
 
                     // Digital SDK consumption
@@ -69,7 +70,6 @@ const App = () => {
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
-                    window.location.href = '/';
                     break;
                 case AuthStatus.AUTHENTICATION_FAILED:
                     setAuthState("AUTHENTICATION_FAILED");

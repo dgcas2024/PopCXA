@@ -9,6 +9,8 @@ import {
     AgentSessionStatus,
     AuthToken,
     EndSessionRequest,
+    UnavailableCode,
+    AgentStateEvent
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -16,6 +18,7 @@ import {
     CXoneAuth,
     AuthStatus,
     AuthWithTokenReq,
+    CXoneUser
 } from "@nice-devone/auth-sdk";
 import {
     CXoneDigitalClient,
@@ -27,7 +30,8 @@ const App = () => {
     const cxoneAuth = CXoneAuth.instance;
     const [authState, setAuthState] = useState("");
     const [authToken, setAuthToken] = useState("");
-    const [agentStatus, setAgentStatus] = useState({} as any);
+    const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
+    const [unavailableCodes, setUnavailableCodes] = useState<Array<UnavailableCode>>([]);
 
     const authSetting: AuthSettings = {
         cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
@@ -74,12 +78,13 @@ const App = () => {
                         }
                         const join_ss = await CXoneAcdClient.instance.session.joinSession();
                         console.log('Join session', join_ss);
-                        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: any) => {
+                        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
                             setAgentStatus(agentState);
                         });
-                        //const cases = await CXoneDigitalClient.instance.digitalContactManager.digitalContactService.getCaseHistory('', 1, 10);
-                        //console.log(cases);
-
+                        var _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+                        if (Array.isArray(_unavailableCodes)) {
+                            setUnavailableCodes(_unavailableCodes);
+                        }
                     }
                     acd();
                     break;
@@ -328,6 +333,13 @@ const App = () => {
         localStorage.setItem('sidebar-collapse-open', '1');
     }
 
+    async function updateAgentState(event: any) {
+        await CXoneAcdClient.instance.session.agentStateService.setAgentState({
+            state: event.target.value?.toLowerCase() === 'Available'.toLowerCase() ? event.target.value : 'Unavailable',
+            reason: event.target.value
+        });
+    }
+
     const appDivRef = useRef<HTMLDivElement>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -378,11 +390,15 @@ const App = () => {
                         </div>
                     </div>
                     <div className="agent-status">
-                        <select className="status-selector">
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                            <option value="acw">After Call Work</option>
-                            <option value="busy">Busy</option>
+                        <select className="status-selector" onChange={updateAgentState} value={agentStatus?.nextState?.reason}>
+                            <option value="Available">Available</option>
+                            {unavailableCodes.filter(item => item.isActive && !item.isAcw).map((item, index) => {
+                                return (
+                                    <React.Fragment key={index}>
+                                        <option value={item.reason}>{item.reason}</option>
+                                    </React.Fragment>
+                                )
+                            })}
                         </select>
                     </div>
                 </div>

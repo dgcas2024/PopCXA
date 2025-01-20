@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
-import { StorageKeys } from "@nice-devone/core-sdk";
+import { StorageKeys, ACDSessionManager } from "@nice-devone/core-sdk";
 import {
     AgentSessionStatus,
     AuthToken,
@@ -22,7 +22,6 @@ import {
     CXoneDigitalContact,
 } from "@nice-devone/digital-sdk";
 import React from "react";
-import { async } from "rxjs";
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
@@ -63,24 +62,24 @@ const App = () => {
                     // ACD SDK consumption
                     const acd = async function () {
                         CXoneAcdClient.instance.initAcdEngagement();
-                        try {
-                            const start = await CXoneAcdClient.instance.session.startSession({
-                                stationId: '',
-                                stationPhoneNumber: 'WebRTC'
-                            });
-                            console.log(start);
-                        } catch {
-                        } finally
-                        {
-                            CXoneAcdClient.instance.session.joinSession().then((response) => {
-                                console.log("Joined Session successfully", response);
-                            }).catch((err) => {
-                                console.error("Join unsuccessfully", err);
-                            });
-                        };
+
+                        if (!ACDSessionManager.instance.hasSessionId) {
+                            try {
+                                const start_ss = await CXoneAcdClient.instance.session.startSession({
+                                    stationId: '',
+                                    stationPhoneNumber: 'WebRTC'
+                                });
+                                console.log('Start session', start_ss);
+                            } catch { }
+                        }
+                        const join_ss = await CXoneAcdClient.instance.session.joinSession();
+                        console.log('Join session', join_ss);
                         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: any) => {
                             setAgentStatus(agentState);
                         });
+                        //const cases = await CXoneDigitalClient.instance.digitalContactManager.digitalContactService.getCaseHistory('', 1, 10);
+                        //console.log(cases);
+
                     }
                     acd();
                     break;

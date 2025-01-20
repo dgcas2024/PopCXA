@@ -69,6 +69,7 @@ const App = () => {
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
+                    window.location.href = '/';
                     break;
                 case AuthStatus.AUTHENTICATION_FAILED:
                     setAuthState("AUTHENTICATION_FAILED");
@@ -88,6 +89,7 @@ const App = () => {
                 code: code,
             };
             cxoneAuth.getAccessTokenByCode(authObject);
+            return;
         }
 
         const customerChats = [
@@ -108,13 +110,6 @@ const App = () => {
         ];
         customerChats.forEach(x => addCustomerChatItem(x));
     }, []);
-
-    //if (authState !== "AUTHENTICATED") {
-    //    return (
-    //        <div className="app">
-    //        </div>
-    //    )
-    //}
 
     let isRecording = false;
     let mediaRecorder: any = null;
@@ -334,6 +329,25 @@ const App = () => {
         channel: "N/A"
     };
     const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
+
+    function handleAuthButtonClick() {
+        cxoneAuth.init(authSetting);
+        cxoneAuth.getAuthorizeUrl('page', 'S256').then((authUrl: string) => {
+            window.location.href = authUrl;
+        });
+    }
+
+    if (authState !== "AUTHENTICATED") {
+        return (
+            <div className="app">
+                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                    <h4>{authState}</h4>
+                    <div style={{ padding: '5px' }}></div>
+                    <button onClick={handleAuthButtonClick} style={{ padding: '5px' }}>Get auth</button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div ref={appDivRef} className={`app ${sidebarCollapse}`}>

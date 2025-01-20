@@ -34,6 +34,17 @@
             }
         }
 
+        function formatMilliseconds(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const formattedHours = String(hours).padStart(2, '0');
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        }
+
         let _time = 0;
         const loop = function (time) {
             if (time - _time >= 1000) {
@@ -41,6 +52,12 @@
                 document.querySelectorAll('.time-auto-update').forEach(x => {
                     const start = parseInt(x.dataset.time);
                     x.textContent = `${formatDateTime(start)}`;
+                });
+                document.querySelectorAll('[data-starttime]').forEach(x => {
+                    if (x.dataset.starttime) {
+                        const delta = new Date() - new Date(x.dataset.starttime);
+                        x.textContent = formatMilliseconds(delta);
+                    }
                 });
             }
             window.requestAnimationFrame(loop);

@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
-import { StorageKeys, ACDSessionManager } from "@nice-devone/core-sdk";
+import { StorageKeys, ACDSessionManager, DateTimeUtilService } from "@nice-devone/core-sdk";
 import {
     AgentSessionStatus,
     AuthToken,
@@ -79,6 +79,10 @@ const App = () => {
                         const join_ss = await CXoneAcdClient.instance.session.joinSession();
                         console.log('Join session', join_ss);
                         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
+                            const serverTime = DateTimeUtilService.getServerTimestamp();
+                            const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
+                            const delta = new Date().getTime() - serverTime;
+                            agentState.agentStateData.StartTime = new Date(originStartTime + delta);
                             setAgentStatus(agentState);
                         });
                         var _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
@@ -386,7 +390,7 @@ const App = () => {
                         <img src={agentAvatar} alt="Agent" className="avatar" />
                         <div>
                             <div>{agentName}</div>
-                            <div style={{ fontSize: '0.8em', color: '#666' }}>Online: 00:30:43</div>
+                            <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                         </div>
                     </div>
                     <div className="agent-status">

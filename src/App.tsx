@@ -30,9 +30,9 @@ const App = () => {
     const [agentStatus, setAgentStatus] = useState({} as any);
 
     const authSetting: AuthSettings = {
-        cxoneHostname: 'https://cxone.niceincontact.com',
-        clientId: '2b52d3dc-8a54-45dc-b1b8-30e780d4b303',
-        redirectUri: 'https://localhost:7209/auth/callback',
+        cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
+        clientId: process.env.REACT_APP__CXONE_CLIENT_ID || '',
+        redirectUri: process.env.REACT_APP__CXONE_AUTH_REDIRECT_URL || '',
     };
 
     useEffect(() => {

@@ -13,67 +13,39 @@
 <body class="sidebar-collapse-open">
     <div id="root"></div>
 
-    <!--<script>
-        setTimeout(function () {
-
-            function formatDateTime(date) {
-                if (typeof date != 'number') {
-                    if (typeof date == typeof '') {
-                        date = new Date(date);
-                    }
-                    date = date.getTime();
+    <script>
+        function formatDateTime(date) {
+            if (typeof date != 'number') {
+                if (typeof date == typeof '') {
+                    date = new Date(date);
                 }
-                const now = new Date();
-                const diffInMs = now - date;
-                const diffInMinutes = Math.floor(diffInMs / 60000);
-
-                if (diffInMinutes < 60) {
-                    return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-                } else if (now.toDateString() === date.toDateString()) {
-                    return date.toTimeString().split(' ')[0];
-                } else {
-                    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${date.toTimeString().split(' ')[0]}`;
-                }
+                date = date.getTime();
             }
+            const now = new Date();
+            const diffInMs = now - date;
+            const diffInMinutes = Math.floor(diffInMs / 60000);
 
-            document.getElementById('sidebar-collapse-close').addEventListener('click', function () {
-                document.body.classList.remove('sidebar-collapse-open');
-                localStorage.setItem('sidebar-collapse-open', '1');
-            });
-            document.getElementById('sidebar-collapse-open').addEventListener('click', function () {
-                document.body.classList.add('sidebar-collapse-open');
-                localStorage.setItem('sidebar-collapse-open', '0');
-            });
-            setTimeout(() => {
-                if (localStorage.getItem('sidebar-collapse-open') != '0' && localStorage.getItem('sidebar-collapse-open') != '1') {
-                    const chatMessages = document.querySelector('.chat-messages');
-                    if (chatMessages.clientWidth == 0) {
-                        document.getElementById('sidebar-collapse-close').dispatchEvent(new Event('click'));
-                    } else {
-                        document.getElementById('sidebar-collapse-open').dispatchEvent(new Event('click'));
-                    }
-                } else {
-                    if (localStorage.getItem('sidebar-collapse-open') == '1') {
-                        document.getElementById('sidebar-collapse-close').dispatchEvent(new Event('click'));
-                    } else {
-                        document.getElementById('sidebar-collapse-open').dispatchEvent(new Event('click'));
-                    }
-                }
-            }, 500);
-
-            let _time = 0;
-            const loop = function (time) {
-                if (time - _time >= 1000) {
-                    _time = time;
-                    document.querySelectorAll('.time-auto-update').forEach(x => {
-                        const start = parseInt(x.dataset.time);
-                        x.textContent = `${formatDateTime(start)}`;
-                    });
-                }
-                window.requestAnimationFrame(loop);
+            if (diffInMinutes < 60) {
+                return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+            } else if (now.toDateString() === date.toDateString()) {
+                return date.toTimeString().split(' ')[0];
+            } else {
+                return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${date.toTimeString().split(' ')[0]}`;
             }
-            loop();
-        }, 2000);
-    </script>-->
+        }
+
+        let _time = 0;
+        const loop = function (time) {
+            if (time - _time >= 1000) {
+                _time = time;
+                document.querySelectorAll('.time-auto-update').forEach(x => {
+                    const start = parseInt(x.dataset.time);
+                    x.textContent = `${formatDateTime(start)}`;
+                });
+            }
+            window.requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
 </body>
 </html>

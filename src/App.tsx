@@ -32,7 +32,7 @@ const App = () => {
     const authSetting: AuthSettings = {
         cxoneHostname: 'https://cxone.niceincontact.com',
         clientId: '2b52d3dc-8a54-45dc-b1b8-30e780d4b303',
-        redirectUri: 'https://popshe-admin.greensand-f36da917.southeastasia.azurecontainerapps.io/auth/callback',
+        redirectUri: 'https://localhost:7209/auth/callback',
     };
 
     useEffect(() => {
@@ -45,7 +45,9 @@ const App = () => {
                     break;
                 case AuthStatus.AUTHENTICATED:
                     setAuthState("AUTHENTICATED");
-                    window.location.href = '/';
+                    if (window.location.pathname !== '/') {
+                        window.location.href = '/';
+                    }
                     setAuthToken((data.response as AuthToken).accessToken);
 
                     // Digital SDK consumption

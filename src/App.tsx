@@ -219,10 +219,10 @@ const App = () => {
                         media = <div className="media-content"><img src={mediaUrl} alt=""></img></div>;
                         break;
                     case 'video':
-                        <div className="media-content"><video controls={true} src={mediaUrl}></video></div>
+                        media = <div className="media-content"><video controls={true} src={mediaUrl}></video></div>
                         break;
                     case 'audio':
-                        <div className="media-content"><audio controls={true} src={mediaUrl}></audio></div>
+                        media = <div className="media-content"><audio controls={true} src={mediaUrl}></audio></div>
                         break;
                 }
             }

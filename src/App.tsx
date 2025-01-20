@@ -109,9 +109,10 @@ const App = () => {
         customerChats.forEach(x => addCustomerChatItem(x));
     }, []);
 
-    //if (authState === "AUTHENTICATED") {
+    //if (authState !== "AUTHENTICATED") {
     //    return (
-    //        <div className="app">xxx</div>
+    //        <div className="app">
+    //        </div>
     //    )
     //}
 
@@ -307,6 +308,18 @@ const App = () => {
         });
     }
 
+    function closeSidebar() {
+        appDivRef.current?.classList?.remove('sidebar-collapse-open');
+        localStorage.setItem('sidebar-collapse-open', '0');
+    }
+
+    function openSidebar() {
+        appDivRef.current?.classList?.add('sidebar-collapse-open');
+        localStorage.setItem('sidebar-collapse-open', '1');
+    }
+
+    const appDivRef = useRef<HTMLDivElement>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
@@ -320,12 +333,13 @@ const App = () => {
         name: "N/A",
         channel: "N/A"
     };
+    const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
 
     return (
-        <div className="app">
+        <div ref={appDivRef} className={`app ${sidebarCollapse}`}>
             <div ref={customersDivRef} className="customers-list sidebar-collapse">
-                <span id="sidebar-collapse-close" className="sidebar-collapse-btn">&lt;&lt;</span>
-                <span id="sidebar-collapse-open" className="sidebar-collapse-btn">&gt;&gt;</span>
+                <span id="sidebar-collapse-close" className="sidebar-collapse-btn" onClick={closeSidebar}>&lt;&lt;</span>
+                <span id="sidebar-collapse-open" className="sidebar-collapse-btn" onClick={openSidebar}>&gt;&gt;</span>
                 <div className="agent-profile">
                     <div className="profile-info">
                         <img src={agentAvatar} alt="Agent" className="avatar" />

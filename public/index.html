@@ -13,28 +13,8 @@
 <body class="sidebar-collapse-open">
     <div id="root"></div>
 
-    <script>
-        let isRecording = false;
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let __currentCustomerChatData = null;
-
+    <!--<script>
         setTimeout(function () {
-            // Handle message input (Shift + Enter for new line)
-            document.getElementById('messageInput').addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            // Handle file inputs
-            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-            document.getElementById('imageInput').addEventListener('change', handleImageSelect);
-            document.getElementById('videoInput').addEventListener('change', handleVideoSelect);
-
-            // Handle recording
-            document.getElementById('recordButton').addEventListener('click', toggleRecording);
 
             function formatDateTime(date) {
                 if (typeof date != 'number') {
@@ -53,176 +33,6 @@
                     return date.toTimeString().split(' ')[0];
                 } else {
                     return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${date.toTimeString().split(' ')[0]}`;
-                }
-            }
-
-            function loadCustomerChatItem(elm, customerChatData) {
-                const messagesContainer = document.getElementById('chatMessages');
-                messagesContainer.innerHTML = '';
-                document.querySelector('.chat-container .chat-header .profile-info .avatar').src = customerChatData.avatar;
-                document.querySelector('.chat-container .chat-header .profile-info .profile-info-name').textContent = customerChatData.name;
-                document.querySelector('.chat-container .chat-header .profile-info .message-time').textContent = customerChatData.channel;
-                document.querySelectorAll('.customer-item').forEach(_elm => {
-                    _elm.classList.remove('active');
-                });
-                elm.classList.add('active');
-                __currentCustomerChatData = customerChatData;
-            }
-
-            function addCustomerChatItem(customerChatData) {
-                const html = `
-                 <div class="customer-preview">
-                     <img src="${customerChatData.avatar}" alt="Customer" class="avatar">
-                     <div class="preview-details">
-                         <div>${customerChatData.channel} - ${customerChatData.name}</div>
-                         <div class="preview-message">${customerChatData.previewLatestMessage}</div>
-                         <div class="message-time time-auto-update" data-time="${customerChatData.timeLatestMessage}">${formatDateTime(customerChatData.timeLatestMessage)}</div>
-                     </div>
-                 </div>`;
-                const elm = document.createElement('div');
-                elm.className = 'customer-item';
-                elm.innerHTML = html;
-                document.getElementsByClassName('customers-list')[0].append(elm);
-                elm.addEventListener('click', function () {
-                    loadCustomerChatItem(elm, customerChatData);
-                });
-            }
-
-            function sendMessage() {
-                if (__currentCustomerChatData == null) {
-                    alert('error');
-                    return;
-                }
-                const input = document.getElementById('messageInput');
-                const message = input.value.trim();
-                if (message) {
-                    addMessage({ name: '@agentName', avatar: '@agentAvatar', time: new Date().getTime() }, message, 'sent');
-                    input.value = '';
-                    // Simulate customer reply after 1-3 seconds
-                    setTimeout(() => {
-                        const replies = [
-                            "Thank you for your message!",
-                            "I understand, let me check that for you.",
-                            "Could you please provide more details?",
-                            "I'll look into this right away."
-                        ];
-                        const randomReply = replies[Math.floor(Math.random() * replies.length)];
-                        addMessage({ name: __currentCustomerChatData.name, avatar: __currentCustomerChatData.avatar, time: new Date().getTime() }, randomReply, 'received');
-                    }, 1000 + Math.random() * 2000);
-                }
-            }
-
-            function addMessage(chater, content, type, mediaType = null, mediaUrl = null) {
-                const messagesContainer = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${type}`;
-
-                const messageInfo = document.createElement('div');
-                messageInfo.className = 'message-info';
-
-                const avatar = document.createElement('img');
-                avatar.src = chater.avatar;
-                avatar.className = 'avatar';
-
-                messageInfo.appendChild(avatar);
-                messageDiv.appendChild(messageInfo);
-
-                const messageContent = document.createElement('div');
-                messageContent.className = 'message-content';
-                messageContent.textContent = content;
-
-                if (mediaType && mediaUrl) {
-                    const mediaContent = document.createElement('div');
-                    mediaContent.className = 'media-content';
-
-                    switch (mediaType) {
-                        case 'image':
-                            const img = document.createElement('img');
-                            img.src = mediaUrl;
-                            mediaContent.appendChild(img);
-                            break;
-                        case 'video':
-                            const video = document.createElement('video');
-                            video.src = mediaUrl;
-                            video.controls = true;
-                            mediaContent.appendChild(video);
-                            break;
-                        case 'audio':
-                            const audio = document.createElement('audio');
-                            audio.src = mediaUrl;
-                            audio.controls = true;
-                            mediaContent.appendChild(audio);
-                            break;
-                    }
-                    messageContent.appendChild(mediaContent);
-                }
-                const nameTime = document.createElement('div');
-                nameTime.className = 'message-name-time';
-                nameTime.innerHTML = `<span>${chater.name}</span> • <span class="time-auto-update" data-time="${chater.time}">${formatDateTime(chater.time)}</span>`
-                messageContent.appendChild(nameTime);
-
-                messageDiv.appendChild(messageContent);
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            function handleFileSelect(event) {
-                const files = event.target.files;
-                for (const file of files) {
-                    addMessage({ name: '@agentName', avatar: '@agentAvatar', time: new Date().getTime() }, `File attached: ${file.name}`, 'sent');
-                }
-            }
-
-            function handleImageSelect(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        addMessage({ name: '@agentName', avatar: '@agentAvatar', time: new Date().getTime() }, 'Image sent:', 'sent', 'image', e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-
-            function handleVideoSelect(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        addMessage({ name: '@agentName', avatar: '@agentAvatar', time: new Date().getTime() }, 'Video sent:', 'sent', 'video', e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-
-            async function toggleRecording() {
-                if (!isRecording) {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
-                        audioChunks = [];
-
-                        mediaRecorder.ondataavailable = (event) => {
-                            audioChunks.push(event.data);
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            addMessage({ name: '@agentName', avatar: '@agentAvatar', time: new Date().getTime() }, 'Voice message:', 'sent', 'audio', audioUrl);
-                        };
-
-                        mediaRecorder.start();
-                        isRecording = true;
-                        document.getElementById('recordButton').textContent = '⏹️ Stop';
-                    } catch (err) {
-                        console.error('Error accessing microphone:', err);
-                        alert('Error accessing microphone. Please check permissions.');
-                    }
-                } else {
-                    mediaRecorder.stop();
-                    isRecording = false;
-                    document.getElementById('recordButton').textContent = '🎤 Record';
                 }
             }
 
@@ -251,24 +61,6 @@
                 }
             }, 500);
 
-            const customerChats = [
-                {
-                    channel: 'ZaloOA Poptech',
-                    name: 'Hong',
-                    avatar: 'https://s120-ava-talk.zadn.vn/2/7/2/2/3/120/0ffcea1d9b0a6723008791da29bda23f.jpg',
-                    previewLatestMessage: 'Hello, I need help with...',
-                    timeLatestMessage: new Date().getTime()
-                },
-                {
-                    channel: 'LineOA PopDev',
-                    name: 'Le Vo Thanh Hong',
-                    avatar: 'https://s120-ava-talk.zadn.vn/6/4/a/3/6/120/c8c733692a53cfedeff8656e77faa3f3.jpg',
-                    previewLatestMessage: 'Hồng ơi?',
-                    timeLatestMessage: new Date().getTime()
-                }
-            ];
-            customerChats.forEach(x => addCustomerChatItem(x));
-
             let _time = 0;
             const loop = function (time) {
                 if (time - _time >= 1000) {
@@ -281,7 +73,7 @@
                 window.requestAnimationFrame(loop);
             }
             loop();
-        }, 1000);
-    </script>
+        }, 2000);
+    </script>-->
 </body>
 </html>

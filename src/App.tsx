@@ -22,6 +22,7 @@ import {
     CXoneDigitalContact,
 } from "@nice-devone/digital-sdk";
 import React from "react";
+import { async } from "rxjs";
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
@@ -60,15 +61,28 @@ const App = () => {
                     });
 
                     // ACD SDK consumption
-                    CXoneAcdClient.instance.initAcdEngagement();
-                    CXoneAcdClient.instance.session.joinSession().then((response) => {
-                        console.log("Joined Session successfully", response);
-                    }).catch((err) => {
-                        console.error("Join unsuccessfully", err);
-                    });
-                    CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: any) => {
-                        setAgentStatus(agentState);
-                    });
+                    const acd = async function () {
+                        CXoneAcdClient.instance.initAcdEngagement();
+                        try {
+                            const start = await CXoneAcdClient.instance.session.startSession({
+                                stationId: '',
+                                stationPhoneNumber: 'WebRTC'
+                            });
+                            console.log(start);
+                        } catch {
+                        } finally
+                        {
+                            CXoneAcdClient.instance.session.joinSession().then((response) => {
+                                console.log("Joined Session successfully", response);
+                            }).catch((err) => {
+                                console.error("Join unsuccessfully", err);
+                            });
+                        };
+                        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: any) => {
+                            setAgentStatus(agentState);
+                        });
+                    }
+                    acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");

@@ -15,22 +15,29 @@
 
     <script>
         function formatDateTime(date) {
+            let _date = 0;
             if (typeof date != 'number') {
                 if (typeof date == typeof '') {
                     date = new Date(date);
                 }
-                date = date.getTime();
+                _date = date.getTime();
+            } else {
+                _date = date;
             }
+            const __date = new Date(_date);
+
             const now = new Date();
-            const diffInMs = now - date;
+            const diffInMs = now.getTime() - _date;
             const diffInMinutes = Math.floor(diffInMs / 60000);
 
             if (diffInMinutes < 60) {
                 return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-            } else if (now.toDateString() === date.toDateString()) {
-                return date.toTimeString().split(' ')[0];
+            } else if (now.toDateString() === __date.toDateString()) {
+                const fullTime = __date.toTimeString().split(' ')[0];
+                return fullTime.substring(0, fullTime.length - 3);
             } else {
-                return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${date.toTimeString().split(' ')[0]}`;
+                const fullDateTime = `${String(__date.getDate()).padStart(2, '0')}/${String(__date.getMonth() + 1).padStart(2, '0')}/${__date.getFullYear()} ${__date.toTimeString().split(' ')[0]}`;
+                return fullDateTime.substring(0, fullDateTime.length - 3);
             }
         }
 

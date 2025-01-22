@@ -30,11 +30,12 @@ import {
 import {
     CXoneDigitalClient,
     CXoneDigitalContact,
-    DigitalService
+    DigitalService,
 } from "@nice-devone/digital-sdk";
 import React from "react";
 
 const digitalService = new DigitalService();
+const cxoneDigitalContact = new CXoneDigitalContact();
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
@@ -69,9 +70,9 @@ const App = () => {
                         const me = await digitalService.getDigitalUserDetails() as any;
                         setCurrentUserInfo(me);
                         console.log('Me', me);
-                    } 
+                    }
                     user();
-                    
+
                     const digital = async function () {
                         // Digital SDK consumption
                         CXoneDigitalClient.instance.initDigitalEngagement();
@@ -81,11 +82,12 @@ const App = () => {
                         CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContact) => {
                             console.log("onDigitalContactEvent", digitalContact);
                         });
-                        const listContact = digitalService.getDigitalContactSearchResult({
+                        const cases = await digitalService.getDigitalContactSearchResult({
                             sortingType: SortingType.DESCENDING,
                             sorting: 'updatedAt'
                         }, true, true);
-                        console.log('xxxx', listContact);
+                        console.log('Case list', cases);
+                        (cases.data as Array<any>).reverse().forEach(addCustomerChatItem);
                     }
                     digital();
 
@@ -153,47 +155,36 @@ const App = () => {
             cxoneAuth.getAccessTokenByCode(authObject);
             return;
         }
-
-        const customerChats = [
-            {
-                channel: 'ZaloOA Poptech',
-                name: 'Hong',
-                avatar: 'https://s120-ava-talk.zadn.vn/2/7/2/2/3/120/0ffcea1d9b0a6723008791da29bda23f.jpg',
-                previewLatestMessage: 'Hello, I need help with...',
-                timeLatestMessage: new Date().getTime()
-            },
-            {
-                channel: 'LineOA PopDev',
-                name: 'Le Vo Thanh Hong',
-                avatar: 'https://s120-ava-talk.zadn.vn/6/4/a/3/6/120/c8c733692a53cfedeff8656e77faa3f3.jpg',
-                previewLatestMessage: 'Hồng ơi?',
-                timeLatestMessage: new Date().getTime()
-            }
-        ];
-        customerChats.forEach(x => addCustomerChatItem(x));
     }, []);
 
     let isRecording = false;
     let mediaRecorder: any = null;
     let audioChunks: any = [];
 
-    function formatDateTime(date: any) {
+    function formatDateTime(date: number | Date) {
+        let _date = 0;
         if (typeof date != 'number') {
             if (typeof date == typeof '') {
                 date = new Date(date);
             }
-            date = date.getTime();
+            _date = date.getTime();
+        } else {
+            _date = date;
         }
-        const now : any = new Date();
-        const diffInMs = now - date;
+        const __date = new Date(_date);
+
+        const now = new Date();
+        const diffInMs = now.getTime() - _date;
         const diffInMinutes = Math.floor(diffInMs / 60000);
 
         if (diffInMinutes < 60) {
             return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-        } else if (now.toDateString() === date.toDateString()) {
-            return date.toTimeString().split(' ')[0];
+        } else if (now.toDateString() === __date.toDateString()) {
+            const fullTime = __date.toTimeString().split(' ')[0];
+            return fullTime.substring(0, fullTime.length - 3);
         } else {
-            return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${date.toTimeString().split(' ')[0]}`;
+            const fullDateTime = `${String(__date.getDate()).padStart(2, '0')}/${String(__date.getMonth() + 1).padStart(2, '0')}/${__date.getFullYear()} ${__date.toTimeString().split(' ')[0]}`;
+            return fullDateTime.substring(0, fullDateTime.length - 3);
         }
     }
 
@@ -205,7 +196,7 @@ const App = () => {
     }
 
     function handleFileSelect(event: any) {
-        if (currentCustomerChatData == null || currentUserInfo == null) {
+        if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
@@ -217,7 +208,7 @@ const App = () => {
     }
 
     function handleImageSelect(event: any) {
-        if (currentCustomerChatData == null || currentUserInfo == null) {
+        if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
@@ -233,7 +224,7 @@ const App = () => {
     }
 
     function handleVideoSelect(event: any) {
-        if (currentCustomerChatData == null || currentUserInfo == null) {
+        if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
@@ -250,7 +241,7 @@ const App = () => {
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
     async function toggleRecording() {
-        if (currentCustomerChatData == null || currentUserInfo == null) {
+        if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
@@ -290,7 +281,7 @@ const App = () => {
             messagesDivRef.current.scrollTop = 9999;
         }
     }, [messages]);
-    function addMessage(chater: any, content: string, type: string, mediaType: string | null = null, mediaUrl: string | null = null) {
+    function addMessage(chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null = null, mediaUrl: string | null = null) {
         if (content !== "") {
             let media: any = null;
             if (mediaType && mediaUrl) {
@@ -327,7 +318,7 @@ const App = () => {
     }
 
     function sendMessage() {
-        if (currentCustomerChatData == null || currentUserInfo == null) {
+        if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
@@ -344,15 +335,40 @@ const App = () => {
                     "I'll look into this right away."
                 ];
                 const randomReply = replies[Math.floor(Math.random() * replies.length)];
-                addMessage({ name: currentCustomerChatData.name, avatar: currentCustomerChatData.avatar, time: new Date().getTime() }, randomReply, 'received');
+                addMessage({ name: currentCaseData.authorEndUserIdentity.fullName, avatar: currentCaseData.authorEndUserIdentity.image, time: new Date().getTime() }, randomReply, 'received');
             }, 1000 + Math.random() * 2000);
         }
     }
 
-    const [currentCustomerChatData, setCurrentCustomerChatData] = useState<any>(null);
-    function selectCustomerChatItem(customerChatData: any) {
+    const [currentCaseData, setCurrentCaseData] = useState<any>(null);
+    async function selectCustomerChatItem(caseData: any) {
         setMessages([]);
-        setCurrentCustomerChatData(customerChatData);
+
+        const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+        (conversationHistory.messages as Array<{
+            authorEndUserIdentity: { fullName: string, image: string },
+            authorUser: { firstName: string, surname: string },
+            direction: 'inbound' | 'outbound',
+            messageContent: { type: string, text: string },
+            sentStatus: string,
+            createdAt: string
+        }>).forEach(m => {
+            if (m.direction === 'inbound') {
+                addMessage({
+                    name: m.authorEndUserIdentity.fullName,
+                    avatar: m.authorEndUserIdentity.image,
+                    time: new Date(m.createdAt).getTime()
+                }, m.messageContent.text, 'received');
+            } else {
+                addMessage({
+                    name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
+                    avatar: defaultUserAvatar,
+                    time: new Date(m.createdAt).getTime()
+                }, m.messageContent.text, 'sent');
+            }
+        });
+
+        setCurrentCaseData(caseData);
     }
 
     const [customerChatItems, setCustomerChatItems] = useState<Array<any>>([]);
@@ -361,15 +377,15 @@ const App = () => {
             customersDivRef.current.scrollTop = 0;
         }
     }, [customerChatItems]);
-    function addCustomerChatItem(customerChatData: any) {
+    function addCustomerChatItem(caseData: any) {
         const html = (
-            <div className="customer-item" onClick={() => selectCustomerChatItem(customerChatData)}>
+            <div className="customer-item" onClick={() => selectCustomerChatItem(caseData)}>
                 <div className="customer-preview">
-                    <img src={customerChatData.avatar} alt="" className="avatar"></img>
+                    <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
                     <div className="preview-details">
-                        <div>{customerChatData.channel} - {customerChatData.name}</div>
-                        <div className="preview-message">{customerChatData.previewLatestMessage}</div>
-                        <div className="message-time time-auto-update" data-time={customerChatData.timeLatestMessage}>{formatDateTime(customerChatData.timeLatestMessage)}</div>
+                        <div>{caseData.authorEndUserIdentity.fullName}</div>
+                        <div className="preview-message">{caseData.preview}</div>
+                        <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
                     </div>
                 </div>
             </div>
@@ -408,11 +424,8 @@ const App = () => {
     const messagesDivRef = useRef<HTMLDivElement>(null);
     const customersDivRef = useRef<HTMLDivElement>(null);
 
-    const _currentCustomerChatData = currentCustomerChatData ?? {
-        avatar: "https://app-eu1.brandembassy.com/img/user-default.png",
-        name: "N/A",
-        channel: "N/A"
-    };
+    const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
+
     const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
 
     function handleAuthButtonClick() {
@@ -477,10 +490,10 @@ const App = () => {
             <div className="chat-container">
                 <div className="chat-header">
                     <div className="profile-info">
-                        <img src={_currentCustomerChatData.avatar} alt="Customer" className="avatar" />
+                        <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Customer" className="avatar" />
                         <div>
-                            <div className="profile-info-name">{_currentCustomerChatData.name}</div>
-                            <div className="message-time">{_currentCustomerChatData.channel}</div>
+                            <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
+                            <div className="message-time">#{currentCaseData?.id}: {currentCaseData?.channelId ?? 'N/A'}</div>
                         </div>
                     </div>
                 </div>

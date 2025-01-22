@@ -4,13 +4,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
-import { StorageKeys, ACDSessionManager, DateTimeUtilService } from "@nice-devone/core-sdk";
+import {
+    StorageKeys,
+    ACDSessionManager,
+    DateTimeUtilService,
+    LocalStorageHelper
+} from "@nice-devone/core-sdk";
 import {
     AgentSessionStatus,
     AuthToken,
     EndSessionRequest,
     UnavailableCode,
-    AgentStateEvent
+    AgentStateEvent,
+    SortingType,
+    UserInfo
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -23,13 +30,18 @@ import {
 import {
     CXoneDigitalClient,
     CXoneDigitalContact,
+    DigitalService
 } from "@nice-devone/digital-sdk";
 import React from "react";
 
+const digitalService = new DigitalService();
+
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
+
     const [authState, setAuthState] = useState("");
     const [authToken, setAuthToken] = useState("");
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [unavailableCodes, setUnavailableCodes] = useState<Array<UnavailableCode>>([]);
 
@@ -41,11 +53,10 @@ const App = () => {
 
     useEffect(() => {
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
-            const getLastLoggedInAgentId = localStorage.getItem(StorageKeys.LAST_LOGGED_IN_AGENT_ID);
-            const agentId = getLastLoggedInAgentId?.toString();
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
                     setAuthState("AUTHENTICATING");
+                    setCurrentUserInfo(undefined);
                     break;
                 case AuthStatus.AUTHENTICATED:
                     setAuthState("AUTHENTICATED");
@@ -54,14 +65,29 @@ const App = () => {
                     }
                     setAuthToken((data.response as AuthToken).accessToken);
 
-                    // Digital SDK consumption
-                    CXoneDigitalClient.instance.initDigitalEngagement();
-                    CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((eventData) => {
-                        console.log("onDigitalContactNewMessageEvent", eventData);
-                    });
-                    CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContact) => {
-                        console.log("onDigitalContactEvent", digitalContact);
-                    });
+                    const user = async function () {
+                        const me = await digitalService.getDigitalUserDetails() as any;
+                        setCurrentUserInfo(me);
+                        console.log('Me', me);
+                    } 
+                    user();
+                    
+                    const digital = async function () {
+                        // Digital SDK consumption
+                        CXoneDigitalClient.instance.initDigitalEngagement();
+                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((eventData) => {
+                            console.log("onDigitalContactNewMessageEvent", eventData);
+                        });
+                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContact) => {
+                            console.log("onDigitalContactEvent", digitalContact);
+                        });
+                        const listContact = digitalService.getDigitalContactSearchResult({
+                            sortingType: SortingType.DESCENDING,
+                            sorting: 'updatedAt'
+                        }, true, true);
+                        console.log('xxxx', listContact);
+                    }
+                    digital();
 
                     // ACD SDK consumption
                     const acd = async function () {
@@ -84,9 +110,17 @@ const App = () => {
                             const delta = new Date().getTime() - serverTime;
                             agentState.agentStateData.StartTime = new Date(originStartTime + delta);
                             setAgentStatus(agentState);
+                            console.log('agentState', agentState);
                         });
-                        var _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+                        const _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
                         if (Array.isArray(_unavailableCodes)) {
+                            if (_unavailableCodes.filter(item => item.isActive && !item.isAcw).length === 0) {
+                                _unavailableCodes.push({
+                                    isActive: true,
+                                    isAcw: false,
+                                    reason: 'Unavailable'
+                                } as UnavailableCode);
+                            }
                             setUnavailableCodes(_unavailableCodes);
                         }
                     }
@@ -94,11 +128,15 @@ const App = () => {
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
+                    setCurrentUserInfo(undefined);
                     break;
                 case AuthStatus.AUTHENTICATION_FAILED:
                     setAuthState("AUTHENTICATION_FAILED");
+                    setCurrentUserInfo(undefined);
                     break;
                 default:
+                    setCurrentUserInfo(undefined);
+                    setAuthState("");
                     break;
             }
         });
@@ -138,8 +176,6 @@ const App = () => {
     let isRecording = false;
     let mediaRecorder: any = null;
     let audioChunks: any = [];
-    const agentName = "Poptech VietNam[HC]";
-    const agentAvatar = "https://app-eu1.brandembassy.com/img/user-default.png";
 
     function formatDateTime(date: any) {
         if (typeof date != 'number') {
@@ -169,19 +205,27 @@ const App = () => {
     }
 
     function handleFileSelect(event: any) {
+        if (currentCustomerChatData == null || currentUserInfo == null) {
+            alert('error');
+            return;
+        }
         const files = event.target.files;
         for (const file of files) {
-            addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, `File attached: ${file.name}`, 'sent');
+            addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, `File attached: ${file.name}`, 'sent');
             event.target.value = '';
         }
     }
 
     function handleImageSelect(event: any) {
+        if (currentCustomerChatData == null || currentUserInfo == null) {
+            alert('error');
+            return;
+        }
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e: any) {
-                addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, 'Image sent:', 'sent', 'image', e.target.result);
+                addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Image sent:', 'sent', 'image', e.target.result);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -189,11 +233,15 @@ const App = () => {
     }
 
     function handleVideoSelect(event: any) {
+        if (currentCustomerChatData == null || currentUserInfo == null) {
+            alert('error');
+            return;
+        }
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e: any) {
-                addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, 'Video sent:', 'sent', 'video', e.target.result);
+                addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Video sent:', 'sent', 'video', e.target.result);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -202,6 +250,10 @@ const App = () => {
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
     async function toggleRecording() {
+        if (currentCustomerChatData == null || currentUserInfo == null) {
+            alert('error');
+            return;
+        }
         if (!isRecording) {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -215,7 +267,7 @@ const App = () => {
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                     const audioUrl = URL.createObjectURL(audioBlob);
-                    addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, 'Voice message:', 'sent', 'audio', audioUrl);
+                    addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Voice message:', 'sent', 'audio', audioUrl);
                 };
 
                 mediaRecorder.start();
@@ -275,13 +327,13 @@ const App = () => {
     }
 
     function sendMessage() {
-        if (currentCustomerChatData == null) {
+        if (currentCustomerChatData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
         const message = messageInputRef.current?.value;
         if (message) {
-            addMessage({ name: agentName, avatar: agentAvatar, time: new Date().getTime() }, message, 'sent');
+            addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, message, 'sent');
             messageInputRef.current.value = '';
             // Simulate customer reply after 1-3 seconds
             setTimeout(() => {
@@ -338,9 +390,11 @@ const App = () => {
     }
 
     async function updateAgentState(event: any) {
+        console.log(event);
         await CXoneAcdClient.instance.session.agentStateService.setAgentState({
-            state: event.target.value?.toLowerCase() === 'Available'.toLowerCase() ? event.target.value : 'Unavailable',
-            reason: event.target.value
+            state: event.target.value === '0' ? 'Available' : 'Unavailable',
+            reason: event.target.value === '0' ? '' : event.target.value,
+            isACW: event.target.value === '0' ? false : event.target.value.startsWith('ACW -')
         });
     }
 
@@ -355,7 +409,7 @@ const App = () => {
     const customersDivRef = useRef<HTMLDivElement>(null);
 
     const _currentCustomerChatData = currentCustomerChatData ?? {
-        avatar: "https://icons.iconarchive.com/icons/martz90/circle/48/video-camera-icon.png",
+        avatar: "https://app-eu1.brandembassy.com/img/user-default.png",
         name: "N/A",
         channel: "N/A"
     };
@@ -387,22 +441,30 @@ const App = () => {
                 <span id="sidebar-collapse-open" className="sidebar-collapse-btn" onClick={openSidebar}>&gt;&gt;</span>
                 <div className="agent-profile">
                     <div className="profile-info">
-                        <img src={agentAvatar} alt="Agent" className="avatar" />
+                        <img src={currentUserInfo?.user?.publicImageUrl ?? 'https://app-eu1.brandembassy.com/img/user-default.png'} alt="Agent" className="avatar" />
                         <div>
-                            <div>{agentName}</div>
+                            <div>{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                             <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                         </div>
                     </div>
                     <div className="agent-status">
-                        <select className="status-selector" onChange={updateAgentState} value={agentStatus?.nextState?.reason}>
-                            <option value="Available">Available</option>
+                        <select className="status-selector" onChange={updateAgentState} value={agentStatus?.currentState?.state?.toLowerCase() === 'available' ? '0' : agentStatus?.currentState?.reason}>
+                            <option value="0">Available</option>
+                            {/*{unavailableCodes.filter(item => item.isActive && item.isAcw).map((item, index) => {*/}
+                            {/*    return (*/}
+                            {/*        <React.Fragment key={index}>*/}
+                            {/*            <option value={item.reason}>ACW - {item.reason}</option>*/}
+                            {/*        </React.Fragment>*/}
+                            {/*    )*/}
+                            {/*})}*/}
                             {unavailableCodes.filter(item => item.isActive && !item.isAcw).map((item, index) => {
                                 return (
                                     <React.Fragment key={index}>
-                                        <option value={item.reason}>{item.reason}</option>
+                                        <option value={item.reason}>Unavailable - {item.reason}</option>
                                     </React.Fragment>
                                 )
                             })}
+                            <option disabled value="">Unavailable -</option>
                         </select>
                     </div>
                 </div>

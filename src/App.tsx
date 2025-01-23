@@ -381,13 +381,13 @@ const App = () => {
 
     const [currentCaseData, setCurrentCaseData] = useState<any>(null);
     async function selectCaseItem(caseData: any) {
+        _currentCaseData = caseData;
+        setCurrentCaseData(caseData);
         setMessageDataList([]);
         if (caseData?.id != null) {
             const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
             handleSetMessageData(conversationHistory.messages);
         }
-        _currentCaseData = caseData;
-        setCurrentCaseData(caseData);
     }
     function handleSetMessageData(messages: any) {
         (messages as Array<{

@@ -18,7 +18,8 @@ import {
     UnavailableCode,
     AgentStateEvent,
     SortingType,
-    UserInfo
+    UserInfo,
+    CallContactEvent
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -50,6 +51,7 @@ const App = () => {
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [unavailableCodes, setUnavailableCodes] = useState<Array<UnavailableCode>>([]);
+    const [callContactDatas, setCallContactDatas] = useState<Array<CallContactEvent>>([]);
 
     const authSetting: AuthSettings = {
         cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
@@ -149,8 +151,18 @@ const App = () => {
                         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((data: any) => {
                             console.log("voiceContactUpdateEvent", data);
                         });
-                        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: any) => {
+                        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
                             console.log("callContactEvent", callContactEvent);
+
+                            const serverTime = DateTimeUtilService.getServerTimestamp();
+                            const originStartTime = new Date(callContactEvent.startTime).getTime();
+                            const delta = new Date().getTime() - serverTime;
+                            callContactEvent.startTime = new Date(originStartTime + delta);
+
+                            setCallContactDatas(callContactDatas.filter(item => item.interactionId !== callContactEvent.interactionId));
+                            if (callContactEvent.status !== 'Disconnected') {
+                                setCallContactDatas(arr => [...arr, callContactEvent]);
+                            }
                         });
 
                         const _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
@@ -549,6 +561,20 @@ const App = () => {
                         </select>
                     </div>
                 </div>
+                {callContactDatas.map((callContactData, index) => (
+                    <React.Fragment key={index}>
+                        <div className={`customer-item`} onClick={() => { }}>
+                            <div className="customer-preview">
+                                <img src={defaultUserAvatar} alt="" className="avatar"></img>
+                                <div className="preview-details">
+                                    <div>{callContactData.ani}</div>
+                                    <div className="preview-message">{callContactData.status}</div>
+                                    <div className="message-time" data-starttime={callContactData.startTime}>00:00:00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </React.Fragment>
+                ))}
                 {caseDataList.map((caseData, index) => (
                     <React.Fragment key={index}>
                         <div className={`customer-item ${(currentCaseData?.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>

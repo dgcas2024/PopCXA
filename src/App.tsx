@@ -367,7 +367,7 @@ const App = () => {
     function handleSetMessageData(messages: any) {
         (messages as Array<{
             authorEndUserIdentity: { fullName: string, image: string },
-            authorUser: { firstName: string, surname: string },
+            authorUser: { firstName: string, surname: string, id: string },
             direction: 'inbound' | 'outbound',
             messageContent: { type: string, text: string },
             sentStatus: string,
@@ -387,10 +387,14 @@ const App = () => {
                 }
                 setMessageDataList(arr => [...arr, messageData]);
             } else {
+                let avatar = defaultUserAvatar;
+                if (m.authorUser.id === currentUserInfo.user.id) {
+                    avatar = currentUserInfo.user.publicImageUrl;
+                }
                 const messageData = {
                     chater: {
                         name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
-                        avatar: defaultUserAvatar,
+                        avatar: avatar,
                         time: new Date(m.createdAt).getTime()
                     },
                     content: m.messageContent.text,

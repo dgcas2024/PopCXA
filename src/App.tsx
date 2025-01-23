@@ -450,11 +450,12 @@ const App = () => {
     }
 
     async function updateAgentState(event: any) {
-        console.log('updateAgentState', event);
+        const state = JSON.parse(event.target.value) as { state: string, reason: string };
+        console.log('updateAgentState', state);
         await CXoneAcdClient.instance.session.agentStateService.setAgentState({
-            state: event.target.value === '0' ? 'Available' : 'Unavailable',
-            reason: event.target.value === '0' ? '' : event.target.value,
-            isACW: event.target.value === '0' ? false : event.target.value.startsWith('ACW -')
+            state: state.state,
+            reason: state.reason,
+            isACW: false
         });
     }
 
@@ -487,6 +488,15 @@ const App = () => {
     }
 
     if (authState !== "AUTHENTICATED") {
+        if (authState === "AUTHENTICATING") {
+            return (
+                <div className="app">
+                    <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                        <h4>AUTHENTICATING</h4>
+                    </div>
+                </div>
+            )
+        }
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
@@ -496,6 +506,14 @@ const App = () => {
                 </div>
             </div>
         )
+    }
+
+    const otherStates: Array<{ state: string, reason: string }> = [];
+    const currentState = { state: agentStatus?.currentState?.state ?? '', reason: agentStatus?.currentState?.reason ?? '' };
+    if ([{ state: 'available', reason: '' }, ...unavailableCodes.filter(item => item.isActive && !item.isAcw).map(item => {
+        return { state: 'unavailable', reason: item.reason };
+    })].map(item => JSON.stringify(item)).filter(item => item === JSON.stringify(currentState)).length === 0) {
+        otherStates.push(currentState);
     }
 
     return (
@@ -512,19 +530,19 @@ const App = () => {
                         </div>
                     </div>
                     <div className="agent-status">
-                        <select className="status-selector" onChange={updateAgentState} value={agentStatus?.currentState?.state?.toLowerCase() === 'available' ? '0' : agentStatus?.currentState?.reason}>
-                            <option value="0">Available</option>
-                            {/*{unavailableCodes.filter(item => item.isActive && item.isAcw).map((item, index) => {*/}
-                            {/*    return (*/}
-                            {/*        <React.Fragment key={index}>*/}
-                            {/*            <option value={item.reason}>ACW - {item.reason}</option>*/}
-                            {/*        </React.Fragment>*/}
-                            {/*    )*/}
-                            {/*})}*/}
+                        <select className="status-selector" onChange={updateAgentState} value={JSON.stringify(currentState)}>
+                            <option value={JSON.stringify({ state: 'available', reason: '' })}>Available</option>
+                            {otherStates.map((item, index) => {
+                                return (
+                                    <React.Fragment key={index}>
+                                        <option value={JSON.stringify(item)}>{item.state} {(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
+                                    </React.Fragment>
+                                )
+                            })}
                             {unavailableCodes.filter(item => item.isActive && !item.isAcw).map((item, index) => {
                                 return (
                                     <React.Fragment key={index}>
-                                        <option value={item.reason}>Unavailable{(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
+                                        <option value={JSON.stringify({ state: 'unavailable', reason: item.reason })}>Unavailable{(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
                                     </React.Fragment>
                                 )
                             })}

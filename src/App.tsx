@@ -19,7 +19,8 @@ import {
     AgentStateEvent,
     SortingType,
     UserInfo,
-    CallContactEvent
+    CallContactEvent,
+    CXoneCase
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -391,7 +392,7 @@ const App = () => {
         }
     }
 
-    const [currentCaseData, setCurrentCaseData] = useState<any>(null);
+    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
     async function selectCaseItem(caseData: any) {
         _currentCaseData = caseData;
         setCurrentCaseData(caseData);
@@ -473,9 +474,11 @@ const App = () => {
 
     async function updateCaseStatus(event: any) {
         console.log('updateCaseStatus', event);
-        const cxoneDigitalContact = new CXoneDigitalContact();
-        cxoneDigitalContact.caseId = currentCaseData.id;
-        await cxoneDigitalContact.changeStatus(event.target.value);
+        if (currentCaseData != null) {
+            const cxoneDigitalContact = new CXoneDigitalContact();
+            cxoneDigitalContact.caseId = currentCaseData.id;
+            await cxoneDigitalContact.changeStatus(event.target.value);
+        }
     }
 
     const appDivRef = useRef<HTMLDivElement>(null);

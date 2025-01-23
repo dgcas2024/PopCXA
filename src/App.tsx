@@ -535,7 +535,7 @@ const App = () => {
                             {otherStates.map((item, index) => {
                                 return (
                                     <React.Fragment key={index}>
-                                        <option value={JSON.stringify(item)}>{item.state} {(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
+                                        <option value={JSON.stringify(item)}>{item.state.charAt(0).toUpperCase() + item.state.slice(1)} {(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
                                     </React.Fragment>
                                 )
                             })}

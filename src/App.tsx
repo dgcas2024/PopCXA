@@ -73,14 +73,18 @@ const App = () => {
                         const me = await digitalService.getDigitalUserDetails() as any;
                         setCurrentUserInfo(me);
                         console.log('Me', me);
+                        return me;
                     }
-                    user();
+                    const userTask = user();
 
                     const digital = async function () {
+                        const cuser = await userTask;
+                        console.log(cuser)
                         const refreshCaseList = async function () {
                             const _caseDataList = await digitalService.getDigitalContactSearchResult({
                                 sortingType: SortingType.DESCENDING,
                                 sorting: 'createdAt',
+                                inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
                                 status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                             }, true, true);
                             console.log('Case data list', _caseDataList);
@@ -94,9 +98,21 @@ const App = () => {
                         });
                         CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
                             console.log("onDigitalContactEvent", digitalContactEvent);
-                            if (_currentCaseData != null) {
-                                setMessageDataList([]);
-                                handleSetMessageData(digitalContactEvent.messages);
+                            refreshCaseList();
+                            if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                                    setCurrentCaseData(digitalContactEvent.case);
+                                    if (digitalContactEvent.case.status === 'closed') {
+                                        setCurrentCaseData(undefined);
+                                    }
+                                } else {
+                                    if (digitalContactEvent.isCaseAssigned) {
+                                        setMessageDataList([]);
+                                        handleSetMessageData(digitalContactEvent.messages);
+                                    } else {
+                                        selectCaseItem(undefined);
+                                    }
+                                }
                             }
                         });
                         await refreshCaseList();
@@ -388,7 +404,7 @@ const App = () => {
                 setMessageDataList(arr => [...arr, messageData]);
             } else {
                 let avatar = defaultUserAvatar;
-                if (m.authorUser.id === currentUserInfo.user.id) {
+                if (m.authorUser.id === currentUserInfo?.user.id) {
                     avatar = currentUserInfo.user.publicImageUrl;
                 }
                 const messageData = {
@@ -425,12 +441,19 @@ const App = () => {
     }
 
     async function updateAgentState(event: any) {
-        console.log(event);
+        console.log('updateAgentState', event);
         await CXoneAcdClient.instance.session.agentStateService.setAgentState({
             state: event.target.value === '0' ? 'Available' : 'Unavailable',
             reason: event.target.value === '0' ? '' : event.target.value,
             isACW: event.target.value === '0' ? false : event.target.value.startsWith('ACW -')
         });
+    }
+
+    async function updateCaseStatus(event: any) {
+        console.log('updateCaseStatus', event);
+        const cxoneDigitalContact = new CXoneDigitalContact();
+        cxoneDigitalContact.caseId = currentCaseData.id;
+        await cxoneDigitalContact.changeStatus(event.target.value);
     }
 
     const appDivRef = useRef<HTMLDivElement>(null);
@@ -563,7 +586,7 @@ const App = () => {
                     })}
                 </div>
 
-                <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'close' ? 'chat-input-disabled' : '')}`}>
+                <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
                     <div className="attachment-options">
                         <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
                         <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
@@ -575,6 +598,17 @@ const App = () => {
 
                         <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
                         <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
+
+                        <select value={currentCaseData?.status} onChange={updateCaseStatus}>
+                            {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
+                            .map((status, index) => {
+                                return (
+                                    <React.Fragment key={index}>
+                                        <option disabled={(currentCaseData?.status === 'closed' || (currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </select>
                     </div>
                     <div className="input-container">
                         <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>

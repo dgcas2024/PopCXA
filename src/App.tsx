@@ -498,7 +498,7 @@ const App = () => {
                 </div>
                 {caseDataList.map((caseData, index) => (
                     <React.Fragment key={index}>
-                        <div className="customer-item" onClick={() => selectCaseItem(caseData)}>
+                        <div className={`customer-item ${(currentCaseData?.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="customer-preview">
                                 <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
                                 <div className="preview-details">
@@ -517,7 +517,7 @@ const App = () => {
                         <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Customer" className="avatar" />
                         <div>
                             <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
-                            <div className="message-time">#{currentCaseData?.id}: {currentCaseData?.channelId ?? 'N/A'}</div>
+                            <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
                         </div>
                     </div>
                 </div>
@@ -559,7 +559,7 @@ const App = () => {
                     })}
                 </div>
 
-                <div className="chat-input">
+                <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'close' ? 'chat-input-disabled' : '')}`}>
                     <div className="attachment-options">
                         <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
                         <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>

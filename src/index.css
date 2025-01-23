@@ -75,6 +75,10 @@
     flex: 1;
 }
 
+.preview-details > div {
+    margin-bottom: 4px;
+}
+
 .preview-message {
     color: #666;
     font-size: 0.8em;
@@ -94,6 +98,10 @@
     padding: 15px;
     background: #f0f2f5;
     border-bottom: 1px solid #ddd;
+}
+
+.chat-header .profile-info .profile-info-name {
+    margin-bottom: 4px;
 }
 
 .chat-messages {
@@ -191,6 +199,11 @@
     padding: 15px;
     background: white;
     border-top: 1px solid #ddd;
+}
+
+.chat-input-disabled {
+    opacity: .8;
+    pointer-events: none;
 }
 
 .input-container {

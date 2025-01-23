@@ -11,6 +11,12 @@
     width: 100%;
 }
 
+button, select {
+    white-space: nowrap;
+}
+
+
+
 /* Agent Profile Section */
 .agent-profile {
     padding: 15px;
@@ -225,6 +231,7 @@
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
+    flex-wrap: wrap;
 }
 
 .attachment-btn {

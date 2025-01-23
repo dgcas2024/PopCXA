@@ -33,6 +33,8 @@ import {
     CXoneDigitalContact,
     DigitalService,
 } from "@nice-devone/digital-sdk";
+import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
+import { CXoneClient, ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
 import React from "react";
 
 const digitalService = new DigitalService();
@@ -134,6 +136,7 @@ const App = () => {
                         }
                         const join_ss = await CXoneAcdClient.instance.session.joinSession();
                         console.log('Join session', join_ss);
+
                         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
                             const serverTime = DateTimeUtilService.getServerTimestamp();
                             const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
@@ -142,15 +145,21 @@ const App = () => {
                             setAgentStatus(agentState);
                             console.log('agentState', agentState);
                         });
+
+                        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((data: any) => {
+                            console.log("voiceContactUpdateEvent", data);
+                        });
+                        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: any) => {
+                            console.log("callContactEvent", callContactEvent);
+                        });
+
                         const _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
                         if (Array.isArray(_unavailableCodes)) {
-                            if (_unavailableCodes.filter(item => item.isActive && !item.isAcw).length === 0) {
-                                _unavailableCodes.push({
-                                    isActive: true,
-                                    isAcw: false,
-                                    reason: 'Unavailable'
-                                } as UnavailableCode);
-                            }
+                            _unavailableCodes.push({
+                                isActive: true,
+                                isAcw: false,
+                                reason: ''
+                            } as UnavailableCode);
                             setUnavailableCodes(_unavailableCodes);
                         }
                     }
@@ -515,11 +524,10 @@ const App = () => {
                             {unavailableCodes.filter(item => item.isActive && !item.isAcw).map((item, index) => {
                                 return (
                                     <React.Fragment key={index}>
-                                        <option value={item.reason}>Unavailable - {item.reason}</option>
+                                        <option value={item.reason}>Unavailable{(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
                                     </React.Fragment>
                                 )
                             })}
-                            <option disabled value="">Unavailable -</option>
                         </select>
                     </div>
                 </div>

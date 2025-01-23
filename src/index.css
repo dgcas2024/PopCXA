@@ -33,6 +33,10 @@
     gap: 10px;
 }
 
+.profile-info .profile-info-name {
+    margin-bottom: 4px;
+}
+
 .avatar {
     width: 40px;
     height: 40px;
@@ -98,10 +102,6 @@
     padding: 15px;
     background: #f0f2f5;
     border-bottom: 1px solid #ddd;
-}
-
-.chat-header .profile-info .profile-info-name {
-    margin-bottom: 4px;
 }
 
 .chat-messages {

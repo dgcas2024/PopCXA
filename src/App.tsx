@@ -103,7 +103,7 @@ const App = () => {
                                 if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                                     setCurrentCaseData(digitalContactEvent.case);
                                     if (digitalContactEvent.case.status === 'closed') {
-                                        setCurrentCaseData(undefined);
+                                        selectCaseItem(undefined);
                                     }
                                 } else {
                                     if (digitalContactEvent.isCaseAssigned) {
@@ -498,7 +498,7 @@ const App = () => {
                     <div className="profile-info">
                         <img src={currentUserInfo?.user?.publicImageUrl ?? 'https://app-eu1.brandembassy.com/img/user-default.png'} alt="Agent" className="avatar" />
                         <div>
-                            <div>{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
+                            <div className="profile-info-name">{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                             <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                         </div>
                     </div>

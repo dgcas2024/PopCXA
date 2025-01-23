@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
     StorageKeys,
@@ -36,6 +37,8 @@ import React from "react";
 
 const digitalService = new DigitalService();
 const cxoneDigitalContact = new CXoneDigitalContact();
+
+let _currentCaseData: any = null;
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
@@ -74,20 +77,29 @@ const App = () => {
                     user();
 
                     const digital = async function () {
+                        const refreshCaseList = async function () {
+                            const _caseDataList = await digitalService.getDigitalContactSearchResult({
+                                sortingType: SortingType.DESCENDING,
+                                sorting: 'createdAt',
+                                status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+                            }, true, true);
+                            console.log('Case data list', _caseDataList);
+                            setCaseDataList([]);
+                            (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
+                        }
                         // Digital SDK consumption
                         CXoneDigitalClient.instance.initDigitalEngagement();
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((eventData) => {
-                            console.log("onDigitalContactNewMessageEvent", eventData);
+                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+                            console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
                         });
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContact) => {
-                            console.log("onDigitalContactEvent", digitalContact);
+                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                            console.log("onDigitalContactEvent", digitalContactEvent);
+                            if (_currentCaseData != null) {
+                                setMessageDataList([]);
+                                handleSetMessageData(digitalContactEvent.messages);
+                            }
                         });
-                        const cases = await digitalService.getDigitalContactSearchResult({
-                            sortingType: SortingType.DESCENDING,
-                            sorting: 'updatedAt'
-                        }, true, true);
-                        console.log('Case list', cases);
-                        (cases.data as Array<any>).reverse().forEach(addCustomerChatItem);
+                        await refreshCaseList();
                     }
                     digital();
 
@@ -202,9 +214,20 @@ const App = () => {
         }
         const files = event.target.files;
         for (const file of files) {
-            addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, `File attached: ${file.name}`, 'sent');
-            event.target.value = '';
+            const messageData = {
+                chater: {
+                    name: currentUserInfo.user.fullName,
+                    avatar: currentUserInfo.user.publicImageUrl,
+                    time: new Date().getTime()
+                },
+                content: `File attached: ${file.name}`,
+                type: 'sent',
+                mediaType: null,
+                mediaUrl: null
+            }
+            setMessageDataList(arr => [...arr, messageData]);
         }
+        event.target.value = '';
     }
 
     function handleImageSelect(event: any) {
@@ -216,7 +239,18 @@ const App = () => {
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e: any) {
-                addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Image sent:', 'sent', 'image', e.target.result);
+                const messageData = {
+                    chater: {
+                        name: currentUserInfo.user.fullName,
+                        avatar: currentUserInfo.user.publicImageUrl,
+                        time: new Date().getTime()
+                    },
+                    content: `Image sent:`,
+                    type: 'sent',
+                    mediaType: 'image',
+                    mediaUrl: e.target.result
+                }
+                setMessageDataList(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -232,7 +266,18 @@ const App = () => {
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e: any) {
-                addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Video sent:', 'sent', 'video', e.target.result);
+                const messageData = {
+                    chater: {
+                        name: currentUserInfo.user.fullName,
+                        avatar: currentUserInfo.user.publicImageUrl,
+                        time: new Date().getTime()
+                    },
+                    content: `Video sent:`,
+                    type: 'sent',
+                    mediaType: 'video',
+                    mediaUrl: e.target.result
+                }
+                setMessageDataList(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -258,7 +303,18 @@ const App = () => {
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                     const audioUrl = URL.createObjectURL(audioBlob);
-                    addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, 'Voice message:', 'sent', 'audio', audioUrl);
+                    const messageData = {
+                        chater: {
+                            name: currentUserInfo.user.fullName,
+                            avatar: currentUserInfo.user.publicImageUrl,
+                            time: new Date().getTime()
+                        },
+                        content: `Voice message:`,
+                        type: 'sent',
+                        mediaType: 'audio',
+                        mediaUrl: audioUrl
+                    }
+                    setMessageDataList(arr => [...arr, messageData]);
                 };
 
                 mediaRecorder.start();
@@ -275,77 +331,41 @@ const App = () => {
         }
     }
 
-    const [messages, setMessages] = useState<Array<any>>([]);
+    const [messageDataList, setMessageDataList] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
     useEffect(() => {
         if (messagesDivRef?.current) {
             messagesDivRef.current.scrollTop = 9999;
         }
-    }, [messages]);
-    function addMessage(chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null = null, mediaUrl: string | null = null) {
-        if (content !== "") {
-            let media: any = null;
-            if (mediaType && mediaUrl) {
-                switch (mediaType) {
-                    case 'image':
-                        media = <div className="media-content"><img src={mediaUrl} alt=""></img></div>;
-                        break;
-                    case 'video':
-                        media = <div className="media-content"><video controls={true} src={mediaUrl}></video></div>
-                        break;
-                    case 'audio':
-                        media = <div className="media-content"><audio controls={true} src={mediaUrl}></audio></div>
-                        break;
-                }
-            }
-            const html = (
-                <div className={`message ${type}`}> {/*messageDiv*/}
-                    <div className="message-info"> {/*messageInfo*/}
-                        <img src={chater.avatar} alt="" className="avatar"></img>
-                    </div>
-                    <div className="message-content"> {/*messageContent*/}
-                        {content}
-                        {media}
-                        <div className="message-name-time">
-                            <span>{chater.name}</span> • <span className="time-auto-update" data-time={chater.time}>{formatDateTime(chater.time)}</span>
-                        </div>
-                    </div>
-                </div>
-            )
-            setMessages(arr => {
-                return [...arr, html];
-            });
-        }
-    }
+    }, [messageDataList]);
 
-    function sendMessage() {
-        if (currentCaseData == null || currentUserInfo == null) {
+    async function sendMessage() {
+        if (currentCaseData == null || currentUserInfo == null || currentCaseData.channelId == null) {
             alert('error');
             return;
         }
         const message = messageInputRef.current?.value;
         if (message) {
-            addMessage({ name: currentUserInfo.user.fullName, avatar: currentUserInfo.user.publicImageUrl, time: new Date().getTime() }, message, 'sent');
             messageInputRef.current.value = '';
-            // Simulate customer reply after 1-3 seconds
-            setTimeout(() => {
-                const replies = [
-                    "Thank you for your message!",
-                    "I understand, let me check that for you.",
-                    "Could you please provide more details?",
-                    "I'll look into this right away."
-                ];
-                const randomReply = replies[Math.floor(Math.random() * replies.length)];
-                addMessage({ name: currentCaseData.authorEndUserIdentity.fullName, avatar: currentCaseData.authorEndUserIdentity.image, time: new Date().getTime() }, randomReply, 'received');
-            }, 1000 + Math.random() * 2000);
+            await cxoneDigitalContact.reply({
+                messageContent: { type: 'TEXT', payload: { text: message } },
+                recipients: [],
+                thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform }
+            }, currentCaseData.channelId, uuidv4())
         }
     }
 
     const [currentCaseData, setCurrentCaseData] = useState<any>(null);
-    async function selectCustomerChatItem(caseData: any) {
-        setMessages([]);
-
-        const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
-        (conversationHistory.messages as Array<{
+    async function selectCaseItem(caseData: any) {
+        setMessageDataList([]);
+        if (caseData?.id != null) {
+            const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+            handleSetMessageData(conversationHistory.messages);
+        }
+        _currentCaseData = caseData;
+        setCurrentCaseData(caseData);
+    }
+    function handleSetMessageData(messages: any) {
+        (messages as Array<{
             authorEndUserIdentity: { fullName: string, image: string },
             authorUser: { firstName: string, surname: string },
             direction: 'inbound' | 'outbound',
@@ -354,46 +374,41 @@ const App = () => {
             createdAt: string
         }>).forEach(m => {
             if (m.direction === 'inbound') {
-                addMessage({
-                    name: m.authorEndUserIdentity.fullName,
-                    avatar: m.authorEndUserIdentity.image,
-                    time: new Date(m.createdAt).getTime()
-                }, m.messageContent.text, 'received');
+                const messageData = {
+                    chater: {
+                        name: m.authorEndUserIdentity.fullName,
+                        avatar: m.authorEndUserIdentity.image,
+                        time: new Date(m.createdAt).getTime()
+                    },
+                    content: m.messageContent.text,
+                    type: 'received',
+                    mediaType: null,
+                    mediaUrl: null
+                }
+                setMessageDataList(arr => [...arr, messageData]);
             } else {
-                addMessage({
-                    name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
-                    avatar: defaultUserAvatar,
-                    time: new Date(m.createdAt).getTime()
-                }, m.messageContent.text, 'sent');
+                const messageData = {
+                    chater: {
+                        name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
+                        avatar: defaultUserAvatar,
+                        time: new Date(m.createdAt).getTime()
+                    },
+                    content: m.messageContent.text,
+                    type: 'sent',
+                    mediaType: null,
+                    mediaUrl: null
+                }
+                setMessageDataList(arr => [...arr, messageData]);
             }
         });
-
-        setCurrentCaseData(caseData);
     }
 
-    const [customerChatItems, setCustomerChatItems] = useState<Array<any>>([]);
+    const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
     useEffect(() => {
         if (customersDivRef?.current) {
             customersDivRef.current.scrollTop = 0;
         }
-    }, [customerChatItems]);
-    function addCustomerChatItem(caseData: any) {
-        const html = (
-            <div className="customer-item" onClick={() => selectCustomerChatItem(caseData)}>
-                <div className="customer-preview">
-                    <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
-                    <div className="preview-details">
-                        <div>{caseData.authorEndUserIdentity.fullName}</div>
-                        <div className="preview-message">{caseData.preview}</div>
-                        <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
-                    </div>
-                </div>
-            </div>
-        )
-        setCustomerChatItems(arr => {
-            return [html, ...arr];
-        });
-    }
+    }, [caseDataList]);
 
     function closeSidebar() {
         appDivRef.current?.classList?.remove('sidebar-collapse-open');
@@ -481,9 +496,18 @@ const App = () => {
                         </select>
                     </div>
                 </div>
-                {customerChatItems.map((item, index) => (
+                {caseDataList.map((caseData, index) => (
                     <React.Fragment key={index}>
-                        {item}
+                        <div className="customer-item" onClick={() => selectCaseItem(caseData)}>
+                            <div className="customer-preview">
+                                <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
+                                <div className="preview-details">
+                                    <div>{caseData.authorEndUserIdentity.fullName}</div>
+                                    <div className="preview-message">{caseData.preview}</div>
+                                    <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
+                                </div>
+                            </div>
+                        </div>
                     </React.Fragment>
                 ))}
             </div>
@@ -499,11 +523,40 @@ const App = () => {
                 </div>
 
                 <div ref={messagesDivRef} className="chat-messages" id="chatMessages">
-                    {messages.map((item, index) => (
-                        <React.Fragment key={index}>
-                            {item}
-                        </React.Fragment>
-                    ))}
+                    {messageDataList.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
+                        let media: any = null;
+                        if (messageData.mediaType && messageData.mediaUrl) {
+                            switch (messageData.mediaType) {
+                                case 'image':
+                                    media = <div className="media-content"><img src={messageData.mediaUrl} alt=""></img></div>;
+                                    break;
+                                case 'video':
+                                    media = <div className="media-content"><video controls={true} src={messageData.mediaUrl}></video></div>
+                                    break;
+                                case 'audio':
+                                    media = <div className="media-content"><audio controls={true} src={messageData.mediaUrl}></audio></div>
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        return (
+                            <React.Fragment key={index}>
+                                <div className={`message ${messageData.type}`}>
+                                    <div className="message-info">
+                                        <img src={messageData.chater.avatar} alt="" className="avatar"></img>
+                                    </div>
+                                    <div className="message-content">
+                                        {messageData.content}
+                                        {media}
+                                        <div className="message-name-time">
+                                            <span>{messageData.chater.name}</span> • <span className="time-auto-update" data-time={messageData.chater.time}>{formatDateTime(messageData.chater.time)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        )
+                    })}
                 </div>
 
                 <div className="chat-input">

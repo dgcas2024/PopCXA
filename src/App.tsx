@@ -42,6 +42,7 @@ import React from "react";
 
 import './components/Call';
 import Call from "./components/Call";
+import SessionConnectionSelect from "./components/SessionConnectionSelect";
 
 let _currentCaseData: any = null;
 let _currentCallContactData: CallContactEvent | null = null;
@@ -117,6 +118,72 @@ const App = () => {
                     }
                     setAuthToken((data.response as AuthToken).accessToken);
 
+                    // ACD SDK consumption
+                    const acd = async function () {
+                        CXoneAcdClient.instance.initAcdEngagement();
+                        if (ACDSessionManager.instance.hasSessionId) {
+                            CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
+                                const serverTime = DateTimeUtilService.getServerTimestamp();
+                                const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
+                                const delta = new Date().getTime() - serverTime;
+                                agentState.agentStateData.StartTime = new Date(originStartTime + delta);
+                                setAgentStatus(agentState);
+                                console.log('agentState', agentState);
+                            });
+
+                            CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+                                console.log("voiceContactUpdateEvent", voiceContactEvent);
+
+                                const serverTime = DateTimeUtilService.getServerTimestamp();
+                                const originStartTime = new Date(voiceContactEvent.startTime).getTime();
+                                const delta = new Date().getTime() - serverTime;
+                                voiceContactEvent.startTime = new Date(originStartTime + delta);
+
+                                if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+                                    setCurrentVoiceContactData(voiceContactEvent);
+                                }
+
+                                setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+                                if (voiceContactEvent.status !== 'Disconnected') {
+                                    setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+                                } else {
+                                    setCurrentVoiceContactData(null);
+                                }
+                            });
+
+                            ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
+                                console.log("callContactEvent", callContactEvent);
+
+                                const serverTime = DateTimeUtilService.getServerTimestamp();
+                                const originStartTime = new Date(callContactEvent.startTime).getTime();
+                                const delta = new Date().getTime() - serverTime;
+                                callContactEvent.startTime = new Date(originStartTime + delta);
+
+                                if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+                                    setCurrentCallContactData(callContactEvent);
+                                }
+
+                                setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
+                                if (callContactEvent.status !== 'Disconnected') {
+                                    setCallContactDataArray(arr => [...arr, callContactEvent]);
+                                } else {
+                                    setCurrentCallContactData(null);
+                                }
+                            });
+
+                            const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+                            if (Array.isArray(_unavailableCodeArray)) {
+                                _unavailableCodeArray.push({
+                                    isActive: true,
+                                    isAcw: false,
+                                    reason: ''
+                                } as UnavailableCode);
+                                setUnavailableCodeArray(_unavailableCodeArray);
+                            }
+                        }
+                    }
+                    acd();
+
                     const user = async function () {
                         const me = await digitalService.getDigitalUserDetails() as any;
                         setCurrentUserInfo(me);
@@ -166,82 +233,6 @@ const App = () => {
                         await refreshCaseList();
                     }
                     digital();
-
-                    // ACD SDK consumption
-                    const acd = async function () {
-                        CXoneAcdClient.instance.initAcdEngagement();
-
-                        if (!ACDSessionManager.instance.hasSessionId) {
-                            try {
-                                const start_ss = await CXoneAcdClient.instance.session.startSession({
-                                    stationId: '',
-                                    stationPhoneNumber: 'WebRTC'
-                                });
-                                console.log('Start session', start_ss);
-                            } catch { }
-                        }
-                        const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                        console.log('Join session', join_ss);
-
-                        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
-                            const serverTime = DateTimeUtilService.getServerTimestamp();
-                            const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
-                            const delta = new Date().getTime() - serverTime;
-                            agentState.agentStateData.StartTime = new Date(originStartTime + delta);
-                            setAgentStatus(agentState);
-                            console.log('agentState', agentState);
-                        });
-
-                        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-                            console.log("voiceContactUpdateEvent", voiceContactEvent);
-
-                            const serverTime = DateTimeUtilService.getServerTimestamp();
-                            const originStartTime = new Date(voiceContactEvent.startTime).getTime();
-                            const delta = new Date().getTime() - serverTime;
-                            voiceContactEvent.startTime = new Date(originStartTime + delta);
-
-                            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
-                                setCurrentVoiceContactData(voiceContactEvent);
-                            }
-
-                            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
-                            if (voiceContactEvent.status !== 'Disconnected') {
-                                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-                            } else {
-                                setCurrentVoiceContactData(null);
-                            }
-                        });
-                        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-                            console.log("callContactEvent", callContactEvent);
-
-                            const serverTime = DateTimeUtilService.getServerTimestamp();
-                            const originStartTime = new Date(callContactEvent.startTime).getTime();
-                            const delta = new Date().getTime() - serverTime;
-                            callContactEvent.startTime = new Date(originStartTime + delta);
-
-                            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
-                                setCurrentCallContactData(callContactEvent);
-                            }
-
-                            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
-                            if (callContactEvent.status !== 'Disconnected') {
-                                setCallContactDataArray(arr => [...arr, callContactEvent]);
-                            } else {
-                                setCurrentCallContactData(null);
-                            }
-                        });
-
-                        const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
-                        if (Array.isArray(_unavailableCodeArray)) {
-                            _unavailableCodeArray.push({
-                                isActive: true,
-                                isAcw: false,
-                                reason: ''
-                            } as UnavailableCode);
-                            setUnavailableCodeArray(_unavailableCodeArray);
-                        }
-                    }
-                    acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -498,6 +489,15 @@ const App = () => {
     }
 
     async function updateAgentState(event: any) {
+        if (event.target.value === '0000') {
+            await CXoneAcdClient.instance.session.endSession({
+                endContacts: true,
+                forceLogoff: true,
+                ignorePersonalQueue: true
+            });
+            window.location.reload();
+            return;
+        }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
         console.log('updateAgentState', state);
         await CXoneAcdClient.instance.session.agentStateService.setAgentState({
@@ -558,13 +558,18 @@ const App = () => {
             )
         }
         return (
-            <div className="app">
+            <div className="app" style={{ display: 'block', height: 'auto' }}>
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
                     <h4>{authState}</h4>
                     <div style={{ padding: '5px' }}></div>
                     <button onClick={handleAuthButtonClick} style={{ padding: '5px' }}>Get auth</button>
                 </div>
             </div>
+        )
+    }
+    if (!ACDSessionManager.instance.hasSessionId) {
+        return (
+            <SessionConnectionSelect></SessionConnectionSelect>
         )
     }
 
@@ -606,6 +611,7 @@ const App = () => {
                                     </React.Fragment>
                                 )
                             })}
+                            <option value="0000">Logout</option>
                         </select>
                     </div>
                 </div>

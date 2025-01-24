@@ -122,6 +122,9 @@ const App = () => {
                     const acd = async function () {
                         CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
+                            const join_ss = await CXoneAcdClient.instance.session.joinSession();
+                            console.log('Join session', join_ss);
+
                             CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
                                 const serverTime = DateTimeUtilService.getServerTimestamp();
                                 const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
@@ -180,6 +183,8 @@ const App = () => {
                                 } as UnavailableCode);
                                 setUnavailableCodeArray(_unavailableCodeArray);
                             }
+                        } else {
+                            throw new Error("JoinSession erorr");
                         }
                     }
                     acd();

@@ -50,8 +50,8 @@ button, select {
     object-fit: cover;
 }
 
-/* Customers List Section */
-.customers-list {
+/* Case List Section */
+.case-list {
     position: relative;
     overflow-x: hidden;
     overflow-y: auto;
@@ -62,18 +62,18 @@ button, select {
     background: white;
 }
 
-.customer-item {
+.case-item {
     padding: 10px;
     border-bottom: 1px solid #ddd;
     cursor: pointer;
 }
 
-.customer-item:hover,
-.customer-item.active {
+.case-item:hover,
+.case-item.active {
     background: #f5f5f5;
 }
 
-.customer-preview {
+.case-preview {
     display: flex;
     gap: 10px;
     white-space: nowrap;

@@ -1,0 +1,139 @@
+.call-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 300px;
+    margin: auto;
+}
+
+.caller-info {
+    margin-bottom: 2rem;
+}
+
+.caller-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.caller-name {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.caller-number {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.call-status {
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.call-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    transition: all 0.2s;
+}
+
+.action-button:hover {
+    transform: scale(1.1);
+}
+
+.action-button.active {
+    background-color: #ff9800 !important;
+}
+
+.accept {
+    background-color: #4CAF50;
+}
+
+.reject {
+    background-color: #f44336;
+}
+
+.transfer {
+    background-color: #2196F3;
+}
+
+.hold {
+    background-color: #607d8b;
+}
+
+.hold:not(.active) i.active-ico {
+    display: none;
+}
+
+.hold.active i:not(.active-ico) {
+    display: none;
+}
+
+.mute {
+    background-color: #607d8b;
+}
+
+.mute:not(.active) i.active-ico {
+    display: none;
+}
+
+.mute.active i:not(.active-ico) {
+    display: none;
+}
+
+.mask {
+    background-color: #607d8b;
+}
+
+.mask:not(.active) i.active-ico {
+    display: none;
+}
+
+.mask.active i:not(.active-ico) {
+    display: none;
+}
+
+.hangup {
+    background-color: #f44336;
+}
+
+button[disabled] {
+    pointer-events: none;
+    opacity: .5;
+}
+
+.call-controls {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.timer {
+    font-size: 1.2rem;
+    color: #333;
+    margin: 1rem 0;
+}

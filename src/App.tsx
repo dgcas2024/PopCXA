@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
-import { CXoneAcdClient } from "@nice-devone/acd-sdk";
+import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import {
     StorageKeys,
     ACDSessionManager,
@@ -20,7 +20,8 @@ import {
     SortingType,
     UserInfo,
     CallContactEvent,
-    CXoneCase
+    CXoneCase,
+    CXoneMessageArray
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -39,33 +40,75 @@ import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
 import { CXoneClient, ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
 import React from "react";
 
-const digitalService = new DigitalService();
-const cxoneDigitalContact = new CXoneDigitalContact();
+import './components/Call';
+import Call from "./components/Call";
 
 let _currentCaseData: any = null;
+let _currentCallContactData: CallContactEvent | null = null;
+let _currentVoiceContactData: CXoneVoiceContact | null = null;
+
+const authSetting: AuthSettings = {
+    cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
+    clientId: process.env.REACT_APP__CXONE_CLIENT_ID || '',
+    redirectUri: process.env.REACT_APP__CXONE_AUTH_REDIRECT_URL || '',
+};
+
+const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
+    const digitalService = new DigitalService();
+    const cxoneDigitalContact = new CXoneDigitalContact();
 
     const [authState, setAuthState] = useState("");
     const [authToken, setAuthToken] = useState("");
-    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
-    const [unavailableCodes, setUnavailableCodes] = useState<Array<UnavailableCode>>([]);
-    const [callContactDatas, setCallContactDatas] = useState<Array<CallContactEvent>>([]);
 
-    const authSetting: AuthSettings = {
-        cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
-        clientId: process.env.REACT_APP__CXONE_CLIENT_ID || '',
-        redirectUri: process.env.REACT_APP__CXONE_AUTH_REDIRECT_URL || '',
-    };
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+
+    const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    
+    const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
+    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+
+    const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
+    
+    const [messageDataList, setMessageDataList] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
+
+    const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
+
+    const appDivRef = useRef<HTMLDivElement>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+    const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const messageListDivRef = useRef<HTMLDivElement>(null);
+    const caseListDivRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (messageListDivRef?.current) {
+            messageListDivRef.current.scrollTop = 9999;
+        }
+    }, [messageDataList]);
+
+    useEffect(() => {
+        if (caseListDivRef?.current) {
+            caseListDivRef.current.scrollTop = 0;
+        }
+    }, [caseDataList]);
 
     useEffect(() => {
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
                     setAuthState("AUTHENTICATING");
-                    setCurrentUserInfo(undefined);
+                    setCurrentUserInfo(null);
                     break;
                 case AuthStatus.AUTHENTICATED:
                     setAuthState("AUTHENTICATED");
@@ -108,14 +151,14 @@ const App = () => {
                                 if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                                     setCurrentCaseData(digitalContactEvent.case);
                                     if (digitalContactEvent.case.status === 'closed') {
-                                        selectCaseItem(undefined);
+                                        selectCaseItem(null);
                                     }
                                 } else {
                                     if (digitalContactEvent.isCaseAssigned) {
                                         setMessageDataList([]);
                                         handleSetMessageData(digitalContactEvent.messages);
                                     } else {
-                                        selectCaseItem(undefined);
+                                        selectCaseItem(null);
                                     }
                                 }
                             }
@@ -149,8 +192,24 @@ const App = () => {
                             console.log('agentState', agentState);
                         });
 
-                        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((data: any) => {
-                            console.log("voiceContactUpdateEvent", data);
+                        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+                            console.log("voiceContactUpdateEvent", voiceContactEvent);
+
+                            const serverTime = DateTimeUtilService.getServerTimestamp();
+                            const originStartTime = new Date(voiceContactEvent.startTime).getTime();
+                            const delta = new Date().getTime() - serverTime;
+                            voiceContactEvent.startTime = new Date(originStartTime + delta);
+
+                            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+                                setCurrentVoiceContactData(voiceContactEvent);
+                            }
+
+                            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+                            if (voiceContactEvent.status !== 'Disconnected') {
+                                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+                            } else {
+                                setCurrentVoiceContactData(null);
+                            }
                         });
                         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
                             console.log("callContactEvent", callContactEvent);
@@ -160,34 +219,40 @@ const App = () => {
                             const delta = new Date().getTime() - serverTime;
                             callContactEvent.startTime = new Date(originStartTime + delta);
 
-                            setCallContactDatas(callContactDatas.filter(item => item.interactionId !== callContactEvent.interactionId));
+                            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+                                setCurrentCallContactData(callContactEvent);
+                            }
+
+                            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
                             if (callContactEvent.status !== 'Disconnected') {
-                                setCallContactDatas(arr => [...arr, callContactEvent]);
+                                setCallContactDataArray(arr => [...arr, callContactEvent]);
+                            } else {
+                                setCurrentCallContactData(null);
                             }
                         });
 
-                        const _unavailableCodes = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
-                        if (Array.isArray(_unavailableCodes)) {
-                            _unavailableCodes.push({
+                        const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+                        if (Array.isArray(_unavailableCodeArray)) {
+                            _unavailableCodeArray.push({
                                 isActive: true,
                                 isAcw: false,
                                 reason: ''
                             } as UnavailableCode);
-                            setUnavailableCodes(_unavailableCodes);
+                            setUnavailableCodeArray(_unavailableCodeArray);
                         }
                     }
                     acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
-                    setCurrentUserInfo(undefined);
+                    setCurrentUserInfo(null);
                     break;
                 case AuthStatus.AUTHENTICATION_FAILED:
                     setAuthState("AUTHENTICATION_FAILED");
-                    setCurrentUserInfo(undefined);
+                    setCurrentUserInfo(null);
                     break;
                 default:
-                    setCurrentUserInfo(undefined);
+                    setCurrentUserInfo(null);
                     setAuthState("");
                     break;
             }
@@ -206,6 +271,18 @@ const App = () => {
             return;
         }
     }, []);
+
+    const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
+
+    function closeSidebar() {
+        appDivRef.current?.classList?.remove('sidebar-collapse-open');
+        localStorage.setItem('sidebar-collapse-open', '0');
+    }
+
+    function openSidebar() {
+        appDivRef.current?.classList?.add('sidebar-collapse-open');
+        localStorage.setItem('sidebar-collapse-open', '1');
+    }
 
     let isRecording = false;
     let mediaRecorder: any = null;
@@ -322,7 +399,6 @@ const App = () => {
         }
     }
 
-    const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
     async function toggleRecording() {
         if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
@@ -369,13 +445,6 @@ const App = () => {
         }
     }
 
-    const [messageDataList, setMessageDataList] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
-    useEffect(() => {
-        if (messagesDivRef?.current) {
-            messagesDivRef.current.scrollTop = 9999;
-        }
-    }, [messageDataList]);
-
     async function sendMessage() {
         if (currentCaseData == null || currentUserInfo == null || currentCaseData.channelId == null) {
             alert('error');
@@ -392,25 +461,8 @@ const App = () => {
         }
     }
 
-    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
-    async function selectCaseItem(caseData: any) {
-        _currentCaseData = caseData;
-        setCurrentCaseData(caseData);
-        setMessageDataList([]);
-        if (caseData?.id != null) {
-            const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
-            handleSetMessageData(conversationHistory.messages);
-        }
-    }
-    function handleSetMessageData(messages: any) {
-        (messages as Array<{
-            authorEndUserIdentity: { fullName: string, image: string },
-            authorUser: { firstName: string, surname: string, id: string },
-            direction: 'inbound' | 'outbound',
-            messageContent: { type: string, text: string },
-            sentStatus: string,
-            createdAt: string
-        }>).forEach(m => {
+    function handleSetMessageData(messages: CXoneMessageArray) {
+        messages.forEach(m => {
             if (m.direction === 'inbound') {
                 const messageData = {
                     chater: {
@@ -445,23 +497,6 @@ const App = () => {
         });
     }
 
-    const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
-    useEffect(() => {
-        if (customersDivRef?.current) {
-            customersDivRef.current.scrollTop = 0;
-        }
-    }, [caseDataList]);
-
-    function closeSidebar() {
-        appDivRef.current?.classList?.remove('sidebar-collapse-open');
-        localStorage.setItem('sidebar-collapse-open', '0');
-    }
-
-    function openSidebar() {
-        appDivRef.current?.classList?.add('sidebar-collapse-open');
-        localStorage.setItem('sidebar-collapse-open', '1');
-    }
-
     async function updateAgentState(event: any) {
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
         console.log('updateAgentState', state);
@@ -481,19 +516,29 @@ const App = () => {
         }
     }
 
-    const appDivRef = useRef<HTMLDivElement>(null);
+    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false) {
+        if (!ignoreSelectCallContactItem) {
+            selectCallContactItem(null, true);
+        }
+        _currentCaseData = caseData;
+        setCurrentCaseData(caseData);
+        setMessageDataList([]);
+        if (caseData?.id != null) {
+            const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+            handleSetMessageData(conversationHistory.messages);
+        }
+    }
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
-    const messageInputRef = useRef<HTMLTextAreaElement>(null);
-
-    const messagesDivRef = useRef<HTMLDivElement>(null);
-    const customersDivRef = useRef<HTMLDivElement>(null);
-
-    const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
-
-    const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
+    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem = false) {
+        if (!ignoreSelectCaseItem) {
+            selectCaseItem(null, true);
+        }
+        _currentCallContactData = callContactData;
+        _currentVoiceContactData = voiceContactDataArray.filter(item => item.interactionId === callContactData?.interactionId)[0];
+        setCurrentCallContactData(callContactData);
+        setCurrentVoiceContactData(_currentVoiceContactData);
+        setMessageDataList([]);
+    }
 
     function handleAuthButtonClick() {
         cxoneAuth.init(authSetting);
@@ -525,7 +570,7 @@ const App = () => {
 
     const otherStates: Array<{ state: string, reason: string }> = [];
     const currentState = { state: agentStatus?.currentState?.state ?? '', reason: agentStatus?.currentState?.reason ?? '' };
-    if ([{ state: 'available', reason: '' }, ...unavailableCodes.filter(item => item.isActive && !item.isAcw).map(item => {
+    if ([{ state: 'available', reason: '' }, ...unavailableCodeArray.filter(item => item.isActive && !item.isAcw).map(item => {
         return { state: 'unavailable', reason: item.reason };
     })].map(item => JSON.stringify(item)).filter(item => item === JSON.stringify(currentState)).length === 0) {
         otherStates.push(currentState);
@@ -533,12 +578,12 @@ const App = () => {
 
     return (
         <div ref={appDivRef} className={`app ${sidebarCollapse}`}>
-            <div ref={customersDivRef} className="customers-list sidebar-collapse">
+            <div ref={caseListDivRef} className="case-list sidebar-collapse">
                 <span id="sidebar-collapse-close" className="sidebar-collapse-btn" onClick={closeSidebar}>&lt;&lt;</span>
                 <span id="sidebar-collapse-open" className="sidebar-collapse-btn" onClick={openSidebar}>&gt;&gt;</span>
                 <div className="agent-profile">
                     <div className="profile-info">
-                        <img src={currentUserInfo?.user?.publicImageUrl ?? 'https://app-eu1.brandembassy.com/img/user-default.png'} alt="Agent" className="avatar" />
+                        <img src={currentUserInfo?.user?.publicImageUrl ?? defaultUserAvatar} alt="Agent" className="avatar" />
                         <div>
                             <div className="profile-info-name">{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                             <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
@@ -554,7 +599,7 @@ const App = () => {
                                     </React.Fragment>
                                 )
                             })}
-                            {unavailableCodes.filter(item => item.isActive && !item.isAcw).map((item, index) => {
+                            {unavailableCodeArray.filter(item => item.isActive && !item.isAcw).map((item, index) => {
                                 return (
                                     <React.Fragment key={index}>
                                         <option value={JSON.stringify({ state: 'unavailable', reason: item.reason })}>Unavailable{(item.reason ?? '') !== '' ? ` - ${item.reason}` : ''}</option>
@@ -564,10 +609,10 @@ const App = () => {
                         </select>
                     </div>
                 </div>
-                {callContactDatas.map((callContactData, index) => (
+                {callContactDataArray.map((callContactData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`customer-item`} onClick={() => { }}>
-                            <div className="customer-preview">
+                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.interactionId === callContactData.interactionId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
+                            <div className="case-preview">
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">
                                     <div>{callContactData.ani}</div>
@@ -580,8 +625,8 @@ const App = () => {
                 ))}
                 {caseDataList.map((caseData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`customer-item ${(currentCaseData?.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
-                            <div className="customer-preview">
+                        <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
+                            <div className="case-preview">
                                 <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
                                 <div className="preview-details">
                                     <div>{caseData.authorEndUserIdentity.fullName}</div>
@@ -594,82 +639,99 @@ const App = () => {
                 ))}
             </div>
             <div className="chat-container">
-                <div className="chat-header">
-                    <div className="profile-info">
-                        <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Customer" className="avatar" />
-                        <div>
-                            <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
-                            <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div ref={messagesDivRef} className="chat-messages" id="chatMessages">
-                    {messageDataList.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
-                        let media: any = null;
-                        if (messageData.mediaType && messageData.mediaUrl) {
-                            switch (messageData.mediaType) {
-                                case 'image':
-                                    media = <div className="media-content"><img src={messageData.mediaUrl} alt=""></img></div>;
-                                    break;
-                                case 'video':
-                                    media = <div className="media-content"><video controls={true} src={messageData.mediaUrl}></video></div>
-                                    break;
-                                case 'audio':
-                                    media = <div className="media-content"><audio controls={true} src={messageData.mediaUrl}></audio></div>
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                        return (
-                            <React.Fragment key={index}>
-                                <div className={`message ${messageData.type}`}>
-                                    <div className="message-info">
-                                        <img src={messageData.chater.avatar} alt="" className="avatar"></img>
-                                    </div>
-                                    <div className="message-content">
-                                        {messageData.content}
-                                        {media}
-                                        <div className="message-name-time">
-                                            <span>{messageData.chater.name}</span> • <span className="time-auto-update" data-time={messageData.chater.time}>{formatDateTime(messageData.chater.time)}</span>
-                                        </div>
-                                    </div>
+                {currentCallContactData != null ? (
+                    <React.Fragment>
+                        <div className="chat-header">
+                            <div className="profile-info">
+                                <img src={defaultUserAvatar} alt="Case" className="avatar" />
+                                <div>
+                                    <div className="profile-info-name">{currentCallContactData.ani}</div>
+                                    <div className="message-time" data-starttime={currentCallContactData.startTime}>00:00:00</div>
                                 </div>
-                            </React.Fragment>
-                        )
-                    })}
-                </div>
-
-                <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
-                    <div className="attachment-options">
-                        <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
-                        <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
-
-                        <button onClick={toggleRecording} className="attachment-btn" id="recordButton">{recordButtonText}</button>
-
-                        <input onChange={handleImageSelect} type="file" id="imageInput" ref={imageInputRef} accept="image/*" style={{ display: 'none' }} />
-                        <button onClick={() => imageInputRef?.current?.click()} className="attachment-btn">🖼️ Image</button>
-
-                        <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
-                        <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
-
-                        <select value={currentCaseData?.status} onChange={updateCaseStatus}>
-                            {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
-                            .map((status, index) => {
+                            </div>
+                        </div>
+                        <div className="chat-messages" id="chatMessages">
+                            <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData}></Call>
+                        </div>
+                    </React.Fragment>
+                ) : (
+                    <React.Fragment>
+                        <div className="chat-header">
+                            <div className="profile-info">
+                                <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Case" className="avatar" />
+                                <div>
+                                    <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
+                                    <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
+                            {messageDataList.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
+                                let media: any = null;
+                                if (messageData.mediaType && messageData.mediaUrl) {
+                                    switch (messageData.mediaType) {
+                                        case 'image':
+                                            media = <div className="media-content"><img src={messageData.mediaUrl} alt=""></img></div>;
+                                            break;
+                                        case 'video':
+                                            media = <div className="media-content"><video controls={true} src={messageData.mediaUrl}></video></div>
+                                            break;
+                                        case 'audio':
+                                            media = <div className="media-content"><audio controls={true} src={messageData.mediaUrl}></audio></div>
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
                                 return (
                                     <React.Fragment key={index}>
-                                        <option disabled={(currentCaseData?.status === 'closed' || (currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
+                                        <div className={`message ${messageData.type}`}>
+                                            <div className="message-info">
+                                                <img src={messageData.chater.avatar} alt="" className="avatar"></img>
+                                            </div>
+                                            <div className="message-content">
+                                                {messageData.content}
+                                                {media}
+                                                <div className="message-name-time">
+                                                    <span>{messageData.chater.name}</span> • <span className="time-auto-update" data-time={messageData.chater.time}>{formatDateTime(messageData.chater.time)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </React.Fragment>
-                                );
+                                )
                             })}
-                        </select>
-                    </div>
-                    <div className="input-container">
-                        <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
-                        <button className="send-btn" onClick={sendMessage}>Send</button>
-                    </div>
-                </div>
+                        </div>
+                        <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
+                            <div className="attachment-options">
+                                <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
+                                <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
+
+                                <button onClick={toggleRecording} className="attachment-btn" id="recordButton">{recordButtonText}</button>
+
+                                <input onChange={handleImageSelect} type="file" id="imageInput" ref={imageInputRef} accept="image/*" style={{ display: 'none' }} />
+                                <button onClick={() => imageInputRef?.current?.click()} className="attachment-btn">🖼️ Image</button>
+
+                                <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
+                                <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
+
+                                <select value={currentCaseData?.status} onChange={updateCaseStatus}>
+                                    {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
+                                        .map((status, index) => {
+                                            return (
+                                                <React.Fragment key={index}>
+                                                    <option disabled={(currentCaseData?.status === 'closed' || (currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </select>
+                            </div>
+                            <div className="input-container">
+                                <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
+                                <button className="send-btn" onClick={sendMessage}>Send</button>
+                            </div>
+                        </div>
+                    </React.Fragment>
+                )}
             </div>
         </div>
     );

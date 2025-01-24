@@ -558,7 +558,7 @@ const App = () => {
             )
         }
         return (
-            <div className="app" style={{ display: 'block', height: 'auto' }}>
+            <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
                     <h4>{authState}</h4>
                     <div style={{ padding: '5px' }}></div>
@@ -569,7 +569,9 @@ const App = () => {
     }
     if (!ACDSessionManager.instance.hasSessionId) {
         return (
-            <SessionConnectionSelect></SessionConnectionSelect>
+            <div className="app" style={{ display: 'block', height: 'auto' }}>
+                <SessionConnectionSelect></SessionConnectionSelect>
+            </div>
         )
     }
 

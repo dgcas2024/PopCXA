@@ -183,64 +183,52 @@ const App = () => {
                                 } as UnavailableCode);
                                 setUnavailableCodeArray(_unavailableCodeArray);
                             }
-                        } else {
-                            return false;
-                        }
-                        return true;
-                    }
-                    if (!acd()) {
-                        break;
-                    }
 
-                    const user = async function () {
-                        const me = await digitalService.getDigitalUserDetails() as any;
-                        setCurrentUserInfo(me);
-                        console.log('Me', me);
-                        return me;
-                    }
-                    const userTask = user();
+                            const cuser = await digitalService.getDigitalUserDetails() as any;
+                            setCurrentUserInfo(cuser);
 
-                    const digital = async function () {
-                        const cuser = await userTask;
-                        console.log(cuser)
-                        const refreshCaseList = async function () {
-                            const _caseDataList = await digitalService.getDigitalContactSearchResult({
-                                sortingType: SortingType.DESCENDING,
-                                sorting: 'createdAt',
-                                inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
-                                status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
-                            }, true, true);
-                            console.log('Case data list', _caseDataList);
-                            setCaseDataList([]);
-                            (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
-                        }
-                        // Digital SDK consumption
-                        CXoneDigitalClient.instance.initDigitalEngagement();
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                            console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
-                        });
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                            console.log("onDigitalContactEvent", digitalContactEvent);
-                            refreshCaseList();
-                            if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
-                                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                                    setCurrentCaseData(digitalContactEvent.case);
-                                    if (digitalContactEvent.case.status === 'closed') {
-                                        selectCaseItem(null);
-                                    }
-                                } else {
-                                    if (digitalContactEvent.isCaseAssigned) {
-                                        setMessageDataList([]);
-                                        handleSetMessageData(digitalContactEvent.messages);
-                                    } else {
-                                        selectCaseItem(null);
-                                    }
+                            const digital = async function () {
+                                const refreshCaseList = async function () {
+                                    const _caseDataList = await digitalService.getDigitalContactSearchResult({
+                                        sortingType: SortingType.DESCENDING,
+                                        sorting: 'createdAt',
+                                        inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
+                                        status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+                                    }, true, true);
+                                    console.log('Case data list', _caseDataList);
+                                    setCaseDataList([]);
+                                    (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
                                 }
+                                // Digital SDK consumption
+                                CXoneDigitalClient.instance.initDigitalEngagement();
+                                CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+                                    console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+                                });
+                                CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                                    console.log("onDigitalContactEvent", digitalContactEvent);
+                                    refreshCaseList();
+                                    if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                                        if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                                            setCurrentCaseData(digitalContactEvent.case);
+                                            if (digitalContactEvent.case.status === 'closed') {
+                                                selectCaseItem(null);
+                                            }
+                                        } else {
+                                            if (digitalContactEvent.isCaseAssigned) {
+                                                setMessageDataList([]);
+                                                handleSetMessageData(digitalContactEvent.messages);
+                                            } else {
+                                                selectCaseItem(null);
+                                            }
+                                        }
+                                    }
+                                });
+                                await refreshCaseList();
                             }
-                        });
-                        await refreshCaseList();
+                            await digital();
+                        }
                     }
-                    digital();
+                    acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");

@@ -208,6 +208,16 @@ const IframeCases = () => {
         )
     }
 
+    if (!ACDSessionManager.instance.hasSessionId) {
+        return (
+            <div className="app">
+                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>
+                    <h4>SESSION NOT STARTED YET</h4>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={`app`}>
             <div ref={caseListDivRef} className="case-list">

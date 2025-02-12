@@ -181,7 +181,7 @@ const IframeAuth = ({ iframeText }: any) => {
         if (authState === "AUTHENTICATING") {
             return (
                 <div className="app">
-                    <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                    <div style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'center', alignItems: 'start', flexDirection: 'column' }}>
                         <span
                             style={{
                                 width: '200px',
@@ -205,7 +205,7 @@ const IframeAuth = ({ iframeText }: any) => {
         }
         return (
             <div className="app">
-                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                <div style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'center', alignItems: 'start', flexDirection: 'column' }}>
                     <button
                         onClick={handleAuthButtonClick}
                         style={{
@@ -232,7 +232,7 @@ const IframeAuth = ({ iframeText }: any) => {
     if (!ACDSessionManager.instance.hasSessionId) {
         return (
             <div className="app">
-                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                <div style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'center', alignItems: 'start', flexDirection: 'column' }}>
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',

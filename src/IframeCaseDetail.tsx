@@ -27,24 +27,12 @@ import './components/Call';
 import Call from "./components/Call";
 
 let _currentCaseData: any = null;
-
 let _currentCallContactData: CallContactEvent | null = null;
-
 let _currentVoiceContactData: CXoneVoiceContact | null = null;
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
 const IframeCaseDetail = () => {
-    if (localStorage.getItem('_currentCaseData')) {
-        _currentCaseData = JSON.parse(localStorage.getItem('_currentCaseData') ?? '{}');
-    }
-    if (localStorage.getItem('_currentCallContactData')) {
-        _currentCallContactData = JSON.parse(localStorage.getItem('_currentCallContactData') ?? '{}') as CallContactEvent;
-    }
-    if (localStorage.getItem('_currentVoiceContactData')) {
-        _currentVoiceContactData = JSON.parse(localStorage.getItem('_currentVoiceContactData') ?? '{}') as CXoneVoiceContact;
-    }
-
     const cxoneAuth = CXoneAuth.instance;
     const digitalService = new DigitalService();
     const cxoneDigitalContact = new CXoneDigitalContact();

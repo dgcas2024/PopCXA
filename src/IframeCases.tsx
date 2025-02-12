@@ -29,6 +29,10 @@ let _currentVoiceContactData: CXoneVoiceContact | null = null;
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
+const delay = (ms: number) => new Promise(rs => {
+    setTimeout(rs, ms);
+})
+
 const IframeCases = () => {
     const cxoneAuth = CXoneAuth.instance;
     const digitalService = new DigitalService();
@@ -84,7 +88,10 @@ const IframeCases = () => {
         console.log(cuser);
 
         const digital = async function () {
-            const refreshCaseList = async function () {
+            const refreshCaseList = async function (_delay: number | null) {
+                if (_delay != null) {
+                    await delay(_delay);
+                }
                 const _caseDataArray = await digitalService.getDigitalContactSearchResult({
                     sortingType: SortingType.DESCENDING,
                     sorting: 'createdAt',
@@ -102,7 +109,7 @@ const IframeCases = () => {
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
                 console.log("onDigitalContactEvent", digitalContactEvent);
-                refreshCaseList();
+                refreshCaseList(1000);
                 if (_currentCaseData?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                         setCurrentCaseData(digitalContactEvent.case);
@@ -120,7 +127,7 @@ const IframeCases = () => {
                     }
                 }
             });
-            await refreshCaseList();
+            await refreshCaseList(null);
         }
         digital();
     }

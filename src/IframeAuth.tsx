@@ -102,14 +102,6 @@ const IframeAuth = ({ iframeText }: any) => {
             }
         });
         cxoneAuth.restoreData();
-
-        const searchParams = new URLSearchParams(window.location.search);
-        const code = searchParams.get("code") || "";
-        if (code) {
-            const message = { messageType: "Authenticated", code: code };
-            window.opener?.postMessage({ message }, "*");
-            return;
-        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

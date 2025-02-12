@@ -2,6 +2,7 @@
 import './index.css';
 import App from './App';
 import IframeAuth from './IframeAuth';
+import IframeCases from './IframeCases';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -12,6 +13,10 @@ const iframeText = searchParams.get("iframeText") || "";
 if (iframe === 'auth') {
     root.render(
         <IframeAuth iframeText={iframeText} />
+    );
+} else if (iframe === 'cases') {
+    root.render(
+        <IframeCases />
     );
 } else {
     root.render(

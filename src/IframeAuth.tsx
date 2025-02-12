@@ -242,14 +242,14 @@ const IframeAuth = ({ iframeText }: any) => {
                         margin: '0 auto'
                     }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <select style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '12px' }} onChange={voiceConnection_handleSelectChange}>
+                            <select style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '12px', outline: 'none' }} onChange={voiceConnection_handleSelectChange}>
                                 <option value="phoneNumber">Phone Number</option>
                                 <option value="stationId">Station ID</option>
                                 <option value="softphone">Integrated Softphone</option>
                             </select>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', outline: 'none' }}>
                             <input type="text"
                                 value={voiceConnection_inputValue}
                                 onChange={(e) => voiceConnection_setInputValue(e.target.value)}
@@ -297,7 +297,7 @@ const IframeAuth = ({ iframeText }: any) => {
                     <div>{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                     <div style={{ fontSize: '11px', color: '#888' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                 </div>
-                <select style={{ fontSize: '14px', padding: '2px' }} onChange={updateAgentState} value={JSON.stringify(currentState)}>
+                <select style={{ fontSize: '14px', padding: '2px', outline: 'none' }} onChange={updateAgentState} value={JSON.stringify(currentState)}>
                     <option value={JSON.stringify({ state: 'available', reason: '' })}>Available</option>
                     {otherStates.map((item, index) => {
                         return (

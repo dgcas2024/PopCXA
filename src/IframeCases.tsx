@@ -24,7 +24,6 @@ import { } from "@nice-devone/agent-sdk";
 import React from "react";
 
 import './components/Call';
-import SessionConnectionSelect from "./components/SessionConnectionSelect";
 
 let _currentCaseData: any = null;
 let _currentCallContactData: CallContactEvent | null = null;
@@ -232,29 +231,11 @@ const IframeCases = () => {
     }
 
     if (authState !== "AUTHENTICATED") {
-        if (authState === "AUTHENTICATING") {
-            return (
-                <div className="app">
-                    <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-                        <h4>AUTHENTICATING</h4>
-                    </div>
-                </div>
-            )
-        }
         return (
             <div className="app">
-                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>
                     <h4>{authState}</h4>
-                    <div style={{ padding: '5px' }}></div>
-                    <button onClick={handleAuthButtonClick} style={{ padding: '5px' }}>Get auth</button>
                 </div>
-            </div>
-        )
-    }
-    if (!ACDSessionManager.instance.hasSessionId) {
-        return (
-            <div className="app" style={{ display: 'block', height: 'auto' }}>
-                <SessionConnectionSelect></SessionConnectionSelect>
             </div>
         )
     }

@@ -126,10 +126,10 @@ const App = () => {
                             console.log('Join session', join_ss);
 
                             CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
-                                const serverTime = DateTimeUtilService.getServerTimestamp();
-                                const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
-                                const delta = new Date().getTime() - serverTime;
-                                agentState.agentStateData.StartTime = new Date(originStartTime + delta);
+                                //const serverTime = DateTimeUtilService.getServerTimestamp();
+                                //const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
+                                //const delta = new Date().getTime() - serverTime;
+                                //agentState.agentStateData.StartTime = new Date(originStartTime + delta);
                                 setAgentStatus(agentState);
                                 console.log('agentState', agentState);
                             });
@@ -137,10 +137,10 @@ const App = () => {
                             CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
                                 console.log("voiceContactUpdateEvent", voiceContactEvent);
 
-                                const serverTime = DateTimeUtilService.getServerTimestamp();
-                                const originStartTime = new Date(voiceContactEvent.startTime).getTime();
-                                const delta = new Date().getTime() - serverTime;
-                                voiceContactEvent.startTime = new Date(originStartTime + delta);
+                                //const serverTime = DateTimeUtilService.getServerTimestamp();
+                                //const originStartTime = new Date(voiceContactEvent.startTime).getTime();
+                                //const delta = new Date().getTime() - serverTime;
+                                //voiceContactEvent.startTime = new Date(originStartTime + delta);
 
                                 if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
                                     setCurrentVoiceContactData(voiceContactEvent);
@@ -157,10 +157,10 @@ const App = () => {
                             ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
                                 console.log("callContactEvent", callContactEvent);
 
-                                const serverTime = DateTimeUtilService.getServerTimestamp();
-                                const originStartTime = new Date(callContactEvent.startTime).getTime();
-                                const delta = new Date().getTime() - serverTime;
-                                callContactEvent.startTime = new Date(originStartTime + delta);
+                                //const serverTime = DateTimeUtilService.getServerTimestamp();
+                                //const originStartTime = new Date(callContactEvent.startTime).getTime();
+                                //const delta = new Date().getTime() - serverTime;
+                                //callContactEvent.startTime = new Date(originStartTime + delta);
 
                                 if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
                                     setCurrentCallContactData(callContactEvent);
@@ -184,10 +184,13 @@ const App = () => {
                                 setUnavailableCodeArray(_unavailableCodeArray);
                             }
                         } else {
-                            throw new Error("JoinSession erorr");
+                            return false;
                         }
+                        return true;
                     }
-                    acd();
+                    if (!acd()) {
+                        break;
+                    }
 
                     const user = async function () {
                         const me = await digitalService.getDigitalUserDetails() as any;
@@ -258,12 +261,15 @@ const App = () => {
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code") || "";
         if (code) {
-            cxoneAuth.init(authSetting);
-            const authObject: AuthWithCodeReq = {
-                clientId: authSetting.clientId,
-                code: code,
-            };
-            cxoneAuth.getAccessTokenByCode(authObject);
+            //cxoneAuth.init(authSetting);
+            //const authObject: AuthWithCodeReq = {
+            //    clientId: authSetting.clientId,
+            //    code: code,
+            //};
+            //cxoneAuth.getAccessTokenByCode(authObject);
+            //return;
+            const message = { messageType: "Authenticated", code: code };
+            window.opener?.postMessage({ message }, "*");
             return;
         }
     }, []);
@@ -548,7 +554,24 @@ const App = () => {
     function handleAuthButtonClick() {
         cxoneAuth.init(authSetting);
         cxoneAuth.getAuthorizeUrl('page', 'S256').then((authUrl: string) => {
-            window.location.href = authUrl;
+            //window.location.href = authUrl;
+            const popupOptions = `width=500,height=800,scrollbars=yes,toolbar=no,left=${window.screenX + 300},top=${window.screenY + 100}`;
+            const popupWindow = window.open(authUrl, "authWindow", popupOptions);
+            window.addEventListener(
+                "message",
+                (event) => {
+                    const message = event.data.message;
+                    if (message && message["messageType"] === "Authenticated") {
+                        const authObject: AuthWithCodeReq = {
+                            clientId: authSetting.clientId,
+                            code: message.code,
+                        };
+                        cxoneAuth.getAccessTokenByCode(authObject);
+                        popupWindow?.close();
+                    }
+                },
+                false
+            );
         });
     }
 

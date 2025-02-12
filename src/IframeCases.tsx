@@ -46,7 +46,7 @@ const IframeCases = () => {
     const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
     useEffect(() => { _currentVoiceContactData = currentVoiceContactData }, [currentVoiceContactData]);
 
-    const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
+    const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
     useEffect(() => { _currentCaseData = currentCaseData }, [currentCaseData]);
 
@@ -85,15 +85,15 @@ const IframeCases = () => {
 
         const digital = async function () {
             const refreshCaseList = async function () {
-                const _caseDataList = await digitalService.getDigitalContactSearchResult({
+                const _caseDataArray = await digitalService.getDigitalContactSearchResult({
                     sortingType: SortingType.DESCENDING,
                     sorting: 'createdAt',
                     inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
-                console.log('Case data list', _caseDataList);
-                setCaseDataList([]);
-                (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
+                console.log('Case data list', _caseDataArray);
+                setCaseDataArray([]);
+                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
             }
             // Digital SDK consumption
             CXoneDigitalClient.instance.initDigitalEngagement();
@@ -126,11 +126,11 @@ const IframeCases = () => {
     }
 
     useEffect(() => {
-        console.log('useEffect[caseDataList]...');
+        console.log('useEffect[caseDataArray]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
-    }, [caseDataList]);
+    }, [caseDataArray]);
 
     useEffect(() => {
         console.log('useEffect...');
@@ -235,7 +235,7 @@ const IframeCases = () => {
                         </div>
                     </React.Fragment>
                 ))}
-                {caseDataList.map((caseData, index) => (
+                {caseDataArray.map((caseData, index) => (
                     <React.Fragment key={index}>
                         <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">

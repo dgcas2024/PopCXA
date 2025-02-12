@@ -39,13 +39,12 @@ const IframeCases = () => {
     const [, setCurrentUserInfo] = useState<any>();
 
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const [, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
 
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
-    const [, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
     
     const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
-    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const [, setCurrentCaseData] = useState<CXoneCase | null>(null);
 
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
@@ -53,26 +52,32 @@ const IframeCases = () => {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
             console.log("voiceContactUpdateEvent", voiceContactEvent);
             if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
-                setCurrentVoiceContactData(voiceContactEvent);
+                _currentVoiceContactData = voiceContactEvent;
             }
             setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
             if (voiceContactEvent.status !== 'Disconnected') {
                 setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
             } else {
-                setCurrentVoiceContactData(null);
+                _currentVoiceContactData = null;
             }
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
             console.log("callContactEvent", callContactEvent);
             if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
-                setCurrentCallContactData(callContactEvent);
+                _currentCallContactData = callContactEvent;
+                setCurrentCallContactData(_currentCallContactData);
+                localStorage.setItem('_currentCallContactData', _currentCallContactData ? JSON.stringify(_currentCallContactData) : '');
+                localStorage.setItem('_currentVoiceContactData', _currentVoiceContactData ? JSON.stringify(_currentVoiceContactData) : '');
             }
             setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
             if (callContactEvent.status !== 'Disconnected') {
                 setCallContactDataArray(arr => [...arr, callContactEvent]);
             } else {
-                setCurrentCallContactData(null);
+                _currentCallContactData = null;
+                setCurrentCallContactData(_currentCallContactData);
+                localStorage.setItem('_currentCallContactData', _currentCallContactData ? JSON.stringify(_currentCallContactData) : '');
+                localStorage.setItem('_currentVoiceContactData', _currentVoiceContactData ? JSON.stringify(_currentVoiceContactData) : '');
             }
         });
 
@@ -102,15 +107,19 @@ const IframeCases = () => {
                 refreshCaseList();
                 if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                        setCurrentCaseData(digitalContactEvent.case);
+                        _currentCaseData = digitalContactEvent.case;
+                        setCurrentCaseData(_currentCaseData);
+                        localStorage.setItem('_currentCaseData', _currentCaseData ? JSON.stringify(_currentCaseData) : '');
                         if (digitalContactEvent.case.status === 'closed') {
                             selectCaseItem(null);
+                            window.parent?.postMessage({ hideCaseDetail: true }, '*');
                         }
                     } else {
                         if (digitalContactEvent.isCaseAssigned) {
                             // Nothing
                         } else {
                             selectCaseItem(null);
+                            window.parent?.postMessage({ hideCaseDetail: true }, '*');
                         }
                     }
                 }
@@ -176,9 +185,10 @@ const IframeCases = () => {
             selectCallContactItem(null, true);
         }
         _currentCaseData = caseData;
-        setCurrentCaseData(caseData);
-        if (caseData?.id != null) {
-            // load conversationHistory xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        setCurrentCaseData(_currentCaseData);
+        localStorage.setItem('_currentCaseData', _currentCaseData ? JSON.stringify(_currentCaseData) : '');
+        if (caseData != null) {
+            window.parent?.postMessage({ openCaseDetail: true }, '*');
         }
     }
 
@@ -187,10 +197,15 @@ const IframeCases = () => {
             selectCaseItem(null, true);
         }
         _currentCallContactData = callContactData;
+        setCurrentCallContactData(_currentCallContactData);
+        localStorage.setItem('_currentCallContactData', _currentCallContactData ? JSON.stringify(_currentCallContactData) : '');
+
         _currentVoiceContactData = voiceContactDataArray.filter(item => item.interactionId === callContactData?.interactionId)[0];
-        setCurrentCallContactData(callContactData);
-        setCurrentVoiceContactData(_currentVoiceContactData);
-        // load call detail xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        localStorage.setItem('_currentVoiceContactData', _currentVoiceContactData ? JSON.stringify(_currentVoiceContactData) : '');
+
+        if (callContactData != null) {
+            window.parent?.postMessage({ openCaseDetail: true }, '*');
+        }
     }
 
     if (authState !== "AUTHENTICATED") {
@@ -218,7 +233,7 @@ const IframeCases = () => {
             <div ref={caseListDivRef} className="case-list">
                 {callContactDataArray.map((callContactData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.interactionId === callContactData.interactionId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
+                        <div className={`case-item ${(_currentCallContactData != null && _currentCallContactData.interactionId === callContactData.interactionId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
                             <div className="case-preview">
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">
@@ -232,7 +247,7 @@ const IframeCases = () => {
                 ))}
                 {caseDataList.map((caseData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
+                        <div className={`case-item ${(_currentCaseData != null && _currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">
                                 <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
                                 <div className="preview-details">

@@ -103,9 +103,9 @@ const IframeCases = () => {
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
                 console.log("onDigitalContactEvent", digitalContactEvent);
                 refreshCaseList();
-                if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                if (_currentCaseData?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                        setCurrentCaseData(_currentCaseData);
+                        setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
                             selectCaseItem(null);
                             window.parent?.postMessage({ hideCaseDetail: true }, '*');

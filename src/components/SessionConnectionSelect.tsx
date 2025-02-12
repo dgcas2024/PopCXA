@@ -39,7 +39,7 @@ import {
 import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
 import { CXoneClient, ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
 
-function SessionConnectionSelect() {
+function SessionConnectionSelect({ setupAcd }: any) {
     const [selectedOption, setSelectedOption] = useState('phone');
     const [inputValue, setInputValue] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -128,7 +128,7 @@ function SessionConnectionSelect() {
         }
         const join_ss = await CXoneAcdClient.instance.session.joinSession();
         console.log('Join session', join_ss);
-        window.location.reload();
+        await setupAcd();
     }
 
     return (

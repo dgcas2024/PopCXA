@@ -92,19 +92,126 @@ const App = () => {
     const messageListDivRef = useRef<HTMLDivElement>(null);
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
+    const setupAcd = async function () {
+        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
+            //const serverTime = DateTimeUtilService.getServerTimestamp();
+            //const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
+            //const delta = new Date().getTime() - serverTime;
+            //agentState.agentStateData.StartTime = new Date(originStartTime + delta);
+            setAgentStatus(agentState);
+            console.log('agentState', agentState);
+        });
+
+        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+            console.log("voiceContactUpdateEvent", voiceContactEvent);
+
+            //const serverTime = DateTimeUtilService.getServerTimestamp();
+            //const originStartTime = new Date(voiceContactEvent.startTime).getTime();
+            //const delta = new Date().getTime() - serverTime;
+            //voiceContactEvent.startTime = new Date(originStartTime + delta);
+
+            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+                setCurrentVoiceContactData(voiceContactEvent);
+            }
+
+            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+            if (voiceContactEvent.status !== 'Disconnected') {
+                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+            } else {
+                setCurrentVoiceContactData(null);
+            }
+        });
+
+        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
+            console.log("callContactEvent", callContactEvent);
+
+            //const serverTime = DateTimeUtilService.getServerTimestamp();
+            //const originStartTime = new Date(callContactEvent.startTime).getTime();
+            //const delta = new Date().getTime() - serverTime;
+            //callContactEvent.startTime = new Date(originStartTime + delta);
+
+            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+                setCurrentCallContactData(callContactEvent);
+            }
+
+            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
+            if (callContactEvent.status !== 'Disconnected') {
+                setCallContactDataArray(arr => [...arr, callContactEvent]);
+            } else {
+                setCurrentCallContactData(null);
+            }
+        });
+
+        const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+        if (Array.isArray(_unavailableCodeArray)) {
+            _unavailableCodeArray.push({
+                isActive: true,
+                isAcw: false,
+                reason: ''
+            } as UnavailableCode);
+            setUnavailableCodeArray(_unavailableCodeArray);
+        }
+
+        const cuser = await digitalService.getDigitalUserDetails() as any;
+        setCurrentUserInfo(cuser);
+
+        const digital = async function () {
+            const refreshCaseList = async function () {
+                const _caseDataList = await digitalService.getDigitalContactSearchResult({
+                    sortingType: SortingType.DESCENDING,
+                    sorting: 'createdAt',
+                    inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
+                    status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+                }, true, true);
+                console.log('Case data list', _caseDataList);
+                setCaseDataList([]);
+                (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
+            }
+            // Digital SDK consumption
+            CXoneDigitalClient.instance.initDigitalEngagement();
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+                console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+            });
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                console.log("onDigitalContactEvent", digitalContactEvent);
+                refreshCaseList();
+                if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        setCurrentCaseData(digitalContactEvent.case);
+                        if (digitalContactEvent.case.status === 'closed') {
+                            selectCaseItem(null);
+                        }
+                    } else {
+                        if (digitalContactEvent.isCaseAssigned) {
+                            setMessageDataList([]);
+                            handleSetMessageData(digitalContactEvent.messages);
+                        } else {
+                            selectCaseItem(null);
+                        }
+                    }
+                }
+            });
+            await refreshCaseList();
+        }
+        await digital();
+    }
+
     useEffect(() => {
+        console.log('useEffect[messageDataList]...');
         if (messageListDivRef?.current) {
             messageListDivRef.current.scrollTop = 9999;
         }
     }, [messageDataList]);
 
     useEffect(() => {
+        console.log('useEffect[caseDataList]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
     }, [caseDataList]);
 
     useEffect(() => {
+        console.log('useEffect...');
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -124,108 +231,7 @@ const App = () => {
                         if (ACDSessionManager.instance.hasSessionId) {
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('Join session', join_ss);
-
-                            CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
-                                //const serverTime = DateTimeUtilService.getServerTimestamp();
-                                //const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
-                                //const delta = new Date().getTime() - serverTime;
-                                //agentState.agentStateData.StartTime = new Date(originStartTime + delta);
-                                setAgentStatus(agentState);
-                                console.log('agentState', agentState);
-                            });
-
-                            CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-                                console.log("voiceContactUpdateEvent", voiceContactEvent);
-
-                                //const serverTime = DateTimeUtilService.getServerTimestamp();
-                                //const originStartTime = new Date(voiceContactEvent.startTime).getTime();
-                                //const delta = new Date().getTime() - serverTime;
-                                //voiceContactEvent.startTime = new Date(originStartTime + delta);
-
-                                if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
-                                    setCurrentVoiceContactData(voiceContactEvent);
-                                }
-
-                                setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
-                                if (voiceContactEvent.status !== 'Disconnected') {
-                                    setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-                                } else {
-                                    setCurrentVoiceContactData(null);
-                                }
-                            });
-
-                            ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-                                console.log("callContactEvent", callContactEvent);
-
-                                //const serverTime = DateTimeUtilService.getServerTimestamp();
-                                //const originStartTime = new Date(callContactEvent.startTime).getTime();
-                                //const delta = new Date().getTime() - serverTime;
-                                //callContactEvent.startTime = new Date(originStartTime + delta);
-
-                                if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
-                                    setCurrentCallContactData(callContactEvent);
-                                }
-
-                                setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
-                                if (callContactEvent.status !== 'Disconnected') {
-                                    setCallContactDataArray(arr => [...arr, callContactEvent]);
-                                } else {
-                                    setCurrentCallContactData(null);
-                                }
-                            });
-
-                            const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
-                            if (Array.isArray(_unavailableCodeArray)) {
-                                _unavailableCodeArray.push({
-                                    isActive: true,
-                                    isAcw: false,
-                                    reason: ''
-                                } as UnavailableCode);
-                                setUnavailableCodeArray(_unavailableCodeArray);
-                            }
-
-                            const cuser = await digitalService.getDigitalUserDetails() as any;
-                            setCurrentUserInfo(cuser);
-
-                            const digital = async function () {
-                                const refreshCaseList = async function () {
-                                    const _caseDataList = await digitalService.getDigitalContactSearchResult({
-                                        sortingType: SortingType.DESCENDING,
-                                        sorting: 'createdAt',
-                                        inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
-                                        status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
-                                    }, true, true);
-                                    console.log('Case data list', _caseDataList);
-                                    setCaseDataList([]);
-                                    (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
-                                }
-                                // Digital SDK consumption
-                                CXoneDigitalClient.instance.initDigitalEngagement();
-                                CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                                    console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
-                                });
-                                CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                                    console.log("onDigitalContactEvent", digitalContactEvent);
-                                    refreshCaseList();
-                                    if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
-                                        if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                                            setCurrentCaseData(digitalContactEvent.case);
-                                            if (digitalContactEvent.case.status === 'closed') {
-                                                selectCaseItem(null);
-                                            }
-                                        } else {
-                                            if (digitalContactEvent.isCaseAssigned) {
-                                                setMessageDataList([]);
-                                                handleSetMessageData(digitalContactEvent.messages);
-                                            } else {
-                                                selectCaseItem(null);
-                                            }
-                                        }
-                                    }
-                                });
-                                await refreshCaseList();
-                            }
-                            await digital();
+                            await setupAcd();
                         }
                     }
                     acd();
@@ -489,12 +495,13 @@ const App = () => {
 
     async function updateAgentState(event: any) {
         if (event.target.value === '0000') {
-            await CXoneAcdClient.instance.session.endSession({
+            const end_ss = await CXoneAcdClient.instance.session.endSession({
                 endContacts: true,
                 forceLogoff: true,
                 ignorePersonalQueue: true
             });
-            window.location.reload();
+            console.log('End session', end_ss)
+            await setupAcd();
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
@@ -586,7 +593,7 @@ const App = () => {
     if (!ACDSessionManager.instance.hasSessionId) {
         return (
             <div className="app" style={{ display: 'block', height: 'auto' }}>
-                <SessionConnectionSelect></SessionConnectionSelect>
+                <SessionConnectionSelect setupAcd={setupAcd}></SessionConnectionSelect>
             </div>
         )
     }

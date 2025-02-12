@@ -37,7 +37,27 @@ const IframeAuth = ({ iframeText }: any) => {
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
 
+    const setupAcd = async () => {
+        CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
+            setAgentStatus(agentState);
+            console.log('agentState', agentState);
+        });
+
+        const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
+        if (Array.isArray(_unavailableCodeArray)) {
+            _unavailableCodeArray.push({
+                isActive: true,
+                isAcw: false,
+                reason: ''
+            } as UnavailableCode);
+            setUnavailableCodeArray(_unavailableCodeArray);
+        }
+        const me = await digitalService.getDigitalUserDetails() as any;
+        setCurrentUserInfo(me);
+    }
+
     useEffect(() => {
+        console.log('useEffect...')
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -55,37 +75,11 @@ const IframeAuth = ({ iframeText }: any) => {
                         CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('Join session', join_ss);
-
-                            CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
-                                setAgentStatus(agentState);
-                                console.log('agentState', agentState);
-                            });
-
-                            const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
-                            if (Array.isArray(_unavailableCodeArray)) {
-                                _unavailableCodeArray.push({
-                                    isActive: true,
-                                    isAcw: false,
-                                    reason: ''
-                                } as UnavailableCode);
-                                setUnavailableCodeArray(_unavailableCodeArray);
-                            }
-                        } else {
-                            return false;
+                            console.log('[0]. Join session', join_ss);
+                            await setupAcd();
                         }
-                        return true;
                     }
-                    if (!acd()) {
-                        break;
-                    }
-                    const user = async function () {
-                        const me = await digitalService.getDigitalUserDetails() as any;
-                        setCurrentUserInfo(me);
-                        console.log('Me', me);
-                        return me;
-                    }
-                    user();
+                    acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -130,18 +124,19 @@ const IframeAuth = ({ iframeText }: any) => {
             } catch { }
         }
         const join_ss = await CXoneAcdClient.instance.session.joinSession();
-        console.log('Join session', join_ss);
-        window.location.reload();
+        console.log('[1]. Join session', join_ss);
+        await setupAcd();
     }
 
     async function updateAgentState(event: any) {
         if (event.target.value === '0000') {
-            await CXoneAcdClient.instance.session.endSession({
+            const end_ss = await CXoneAcdClient.instance.session.endSession({
                 endContacts: true,
                 forceLogoff: true,
                 ignorePersonalQueue: true
             });
-            window.location.reload();
+            console.log('End session', end_ss)
+            await setupAcd();
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
@@ -276,7 +271,7 @@ const IframeAuth = ({ iframeText }: any) => {
             </div>
         )
     }
-
+    
     const otherStates: Array<{ state: string, reason: string }> = [];
     const currentState = { state: agentStatus?.currentState?.state ?? '', reason: agentStatus?.currentState?.reason ?? '' };
     if ([{ state: 'available', reason: '' }, ...unavailableCodeArray.filter(item => item.isActive && !item.isAcw).map(item => {

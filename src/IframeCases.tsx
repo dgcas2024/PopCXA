@@ -10,8 +10,6 @@ import {
     CXoneCase,
 } from "@nice-devone/common-sdk";
 import {
-    AuthSettings,
-    AuthWithCodeReq,
     CXoneAuth,
     AuthStatus,
 } from "@nice-devone/auth-sdk";
@@ -28,12 +26,6 @@ import './components/Call';
 let _currentCaseData: any = null;
 let _currentCallContactData: CallContactEvent | null = null;
 let _currentVoiceContactData: CXoneVoiceContact | null = null;
-
-const authSetting: AuthSettings = {
-    cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
-    clientId: process.env.REACT_APP__CXONE_CLIENT_ID || '',
-    redirectUri: process.env.REACT_APP__CXONE_AUTH_REDIRECT_URL || '',
-};
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 

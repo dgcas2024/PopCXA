@@ -154,6 +154,7 @@ const App = () => {
 
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
+        console.log(cuser);
 
         const digital = async function () {
             const refreshCaseList = async function () {

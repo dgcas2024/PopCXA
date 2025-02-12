@@ -49,13 +49,86 @@ const IframeCases = () => {
 
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
+    const setupAcd = async () => {
+        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+            console.log("voiceContactUpdateEvent", voiceContactEvent);
+            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+                setCurrentVoiceContactData(voiceContactEvent);
+            }
+            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+            if (voiceContactEvent.status !== 'Disconnected') {
+                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+            } else {
+                setCurrentVoiceContactData(null);
+            }
+        });
+
+        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
+            console.log("callContactEvent", callContactEvent);
+            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+                setCurrentCallContactData(callContactEvent);
+            }
+            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
+            if (callContactEvent.status !== 'Disconnected') {
+                setCallContactDataArray(arr => [...arr, callContactEvent]);
+            } else {
+                setCurrentCallContactData(null);
+            }
+        });
+
+        const cuser = await digitalService.getDigitalUserDetails() as any;
+        setCurrentUserInfo(cuser);
+        console.log(cuser);
+
+        const digital = async function () {
+            const refreshCaseList = async function () {
+                const _caseDataList = await digitalService.getDigitalContactSearchResult({
+                    sortingType: SortingType.DESCENDING,
+                    sorting: 'createdAt',
+                    inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
+                    status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+                }, true, true);
+                console.log('Case data list', _caseDataList);
+                setCaseDataList([]);
+                (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
+            }
+            // Digital SDK consumption
+            CXoneDigitalClient.instance.initDigitalEngagement();
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+                console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+            });
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                console.log("onDigitalContactEvent", digitalContactEvent);
+                refreshCaseList();
+                if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        setCurrentCaseData(digitalContactEvent.case);
+                        if (digitalContactEvent.case.status === 'closed') {
+                            selectCaseItem(null);
+                        }
+                    } else {
+                        if (digitalContactEvent.isCaseAssigned) {
+                            // Nothing
+                        } else {
+                            selectCaseItem(null);
+                        }
+                    }
+                }
+            });
+            await refreshCaseList();
+        }
+        digital();
+    }
+
     useEffect(() => {
+        console.log('useEffect[caseDataList]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
     }, [caseDataList]);
 
     useEffect(() => {
+        console.log('useEffect...');
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -73,90 +146,12 @@ const IframeCases = () => {
                     const acd = async function () {
                         CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
-                            await CXoneAcdClient.instance.session.joinSession();
-
-                            CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-                                console.log("voiceContactUpdateEvent", voiceContactEvent);
-                                if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
-                                    setCurrentVoiceContactData(voiceContactEvent);
-                                }
-                                setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
-                                if (voiceContactEvent.status !== 'Disconnected') {
-                                    setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-                                } else {
-                                    setCurrentVoiceContactData(null);
-                                }
-                            });
-
-                            ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-                                console.log("callContactEvent", callContactEvent);
-                                if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
-                                    setCurrentCallContactData(callContactEvent);
-                                }
-                                setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
-                                if (callContactEvent.status !== 'Disconnected') {
-                                    setCallContactDataArray(arr => [...arr, callContactEvent]);
-                                } else {
-                                    setCurrentCallContactData(null);
-                                }
-                            });
-                        } else {
-                            return false;
+                            const join_ss = await CXoneAcdClient.instance.session.joinSession();
+                            console.log('[0]. Join session', join_ss);
+                            await setupAcd();
                         }
-                        return true;
                     }
-                    if (!acd()) {
-                        break;
-                    }
-
-                    const user = async function () {
-                        const me = await digitalService.getDigitalUserDetails() as any;
-                        setCurrentUserInfo(me);
-                        console.log('Me', me);
-                        return me;
-                    }
-                    const userTask = user();
-
-                    const digital = async function () {
-                        const cuser = await userTask;
-                        console.log(cuser)
-                        const refreshCaseList = async function () {
-                            const _caseDataList = await digitalService.getDigitalContactSearchResult({
-                                sortingType: SortingType.DESCENDING,
-                                sorting: 'createdAt',
-                                inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
-                                status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
-                            }, true, true);
-                            console.log('Case data list', _caseDataList);
-                            setCaseDataList([]);
-                            (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
-                        }
-                        // Digital SDK consumption
-                        CXoneDigitalClient.instance.initDigitalEngagement();
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                            console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
-                        });
-                        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                            console.log("onDigitalContactEvent", digitalContactEvent);
-                            refreshCaseList();
-                            if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
-                                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                                    setCurrentCaseData(digitalContactEvent.case);
-                                    if (digitalContactEvent.case.status === 'closed') {
-                                        selectCaseItem(null);
-                                    }
-                                } else {
-                                    if (digitalContactEvent.isCaseAssigned) {
-                                        // Nothing
-                                    } else {
-                                        selectCaseItem(null);
-                                    }
-                                }
-                            }
-                        });
-                        await refreshCaseList();
-                    }
-                    digital();
+                    acd();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");

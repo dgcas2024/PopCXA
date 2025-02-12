@@ -52,8 +52,9 @@ const IframeAuth = ({ iframeText }: any) => {
             } as UnavailableCode);
             setUnavailableCodeArray(_unavailableCodeArray);
         }
-        const me = await digitalService.getDigitalUserDetails() as any;
-        setCurrentUserInfo(me);
+        const cuser = await digitalService.getDigitalUserDetails() as any;
+        setCurrentUserInfo(cuser);
+        console.log(cuser);
     }
 
     useEffect(() => {
@@ -76,6 +77,7 @@ const IframeAuth = ({ iframeText }: any) => {
                         if (ACDSessionManager.instance.hasSessionId) {
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('[0]. Join session', join_ss);
+                            window.parent?.postMessage({ sessionStarted: true }, '*');
                             await setupAcd();
                         }
                     }
@@ -121,10 +123,12 @@ const IframeAuth = ({ iframeText }: any) => {
                     stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
                 console.log('Start session', start_ss);
+                window.parent?.postMessage({ sessionStarted: true }, '*');
             } catch { }
         }
         const join_ss = await CXoneAcdClient.instance.session.joinSession();
         console.log('[1]. Join session', join_ss);
+        window.parent?.postMessage({ sessionStarted: true }, '*');
         await setupAcd();
     }
 
@@ -136,6 +140,7 @@ const IframeAuth = ({ iframeText }: any) => {
                 ignorePersonalQueue: true
             });
             console.log('End session', end_ss)
+            window.parent?.postMessage({ sessionEnded: true }, '*');
             await setupAcd();
             return;
         }

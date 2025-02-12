@@ -206,30 +206,6 @@ const IframeCases = () => {
         // load call detail xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     }
 
-    function handleAuthButtonClick() {
-        cxoneAuth.init(authSetting);
-        cxoneAuth.getAuthorizeUrl('page', 'S256').then((authUrl: string) => {
-            //window.location.href = authUrl;
-            const popupOptions = `width=500,height=800,scrollbars=yes,toolbar=no,left=${window.screenX + 300},top=${window.screenY + 100}`;
-            const popupWindow = window.open(authUrl, "authWindow", popupOptions);
-            window.addEventListener(
-                "message",
-                (event) => {
-                    const message = event.data.message;
-                    if (message && message["messageType"] === "Authenticated") {
-                        const authObject: AuthWithCodeReq = {
-                            clientId: authSetting.clientId,
-                            code: message.code,
-                        };
-                        cxoneAuth.getAccessTokenByCode(authObject);
-                        popupWindow?.close();
-                    }
-                },
-                false
-            );
-        });
-    }
-
     if (authState !== "AUTHENTICATED") {
         return (
             <div className="app">

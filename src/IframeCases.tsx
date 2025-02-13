@@ -203,6 +203,8 @@ const IframeCases = () => {
         if (caseData != null) {
             try {
                 localStorage.setItem('currentCaseData', JSON.stringify(caseData));
+                localStorage.removeItem('currentCallContactData');
+                localStorage.removeItem('currentVoiceContactData');
             } catch { }
             window.parent?.postMessage({ openCaseDetail: true }, '*');
         }
@@ -218,6 +220,7 @@ const IframeCases = () => {
 
         if (callContactData != null) {
             try {
+                localStorage.removeItem('currentCaseData');
                 localStorage.setItem('currentCallContactData', JSON.stringify(callContactData));
                 localStorage.setItem('currentVoiceContactData', JSON.stringify(voiceContactData));
             } catch { }

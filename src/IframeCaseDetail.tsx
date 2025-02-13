@@ -70,23 +70,26 @@ const IframeCaseDetail = () => {
     useEffect(() => {
         setMessageDataArray([]);
         try {
-            const ccd = (JSON.parse(localStorage.getItem('currentCaseData') ?? '{}') as CXoneCase);
-            setCurrentCaseData(ccd);
-            const run = async () => {
-                const conversationHistory = await cxoneDigitalContact.loadConversationHistory(ccd.id);
-                handleSetMessageData(conversationHistory.messages);
+            const caseData = (JSON.parse(localStorage.getItem('currentCaseData') ?? '{}') as CXoneCase);
+            if (caseData?.id) {
+                setCurrentCaseData(caseData);
+                const run = async (caseData: CXoneCase) => {
+                    const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+                    handleSetMessageData(conversationHistory.messages);
+                }
+                run(caseData);
             }
-            run();
+        } catch { }
+        try {
+            const callContactData = (JSON.parse(localStorage.getItem('currentCallContactData') ?? '{}') as CallContactEvent);
+            const voiceContactData = (JSON.parse(localStorage.getItem('currentVoiceContactData') ?? '{}') as CXoneVoiceContact);
+            if (callContactData?.interactionId) {
+                setCurrentCallContactData(callContactData);
+                setCurrentVoiceContactData(voiceContactData);
+            }
         } catch { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    //
-    //case?
-    //const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
-    //handleSetMessageData(conversationHistory.messages);
-    //call?
-    //setMessageDataArray([]);
 
     const setupAcd = async function () {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {

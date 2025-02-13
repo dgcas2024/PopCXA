@@ -1,7 +1,4 @@
-﻿/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
@@ -44,9 +41,9 @@ import './components/Call';
 import Call from "./components/Call";
 import SessionConnectionSelect from "./components/SessionConnectionSelect";
 
-let _currentCaseData: any = null;
-let _currentCallContactData: CallContactEvent | null = null;
-let _currentVoiceContactData: CXoneVoiceContact | null = null;
+//let _currentCaseData: any = null;
+//let _currentCallContactData: CallContactEvent | null = null;
+//let _currentVoiceContactData: CXoneVoiceContact | null = null;
 
 const authSetting: AuthSettings = {
     cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
@@ -62,25 +59,42 @@ const App = () => {
     const cxoneDigitalContact = new CXoneDigitalContact();
 
     const [authState, setAuthState] = useState("");
-    const [authToken, setAuthToken] = useState("");
+    const [, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
 
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const currentUserInfoRef = useRef(currentUserInfo);
 
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
     const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const callContactDataArrayRef = useRef(callContactDataArray);
+    const currentCallContactDataRef = useRef(currentCallContactData);
 
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
     const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
-    
-    const [caseDataList, setCaseDataList] = useState<Array<any>>([]);
+    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+
+    const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const currentCaseDataRef = useRef(currentCaseData);
 
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
     
-    const [messageDataList, setMessageDataList] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
+    const [messageDataArray, setMessageDataArray] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
+
+
+    useEffect(() => {
+        currentUserInfoRef.current = currentUserInfo;
+        callContactDataArrayRef.current = callContactDataArray;
+        currentCallContactDataRef.current = currentCallContactData;
+        voiceContactDataArrayRef.current = voiceContactDataArray;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+
+    }, [callContactDataArray, currentCallContactData, currentCaseData, currentUserInfo, currentVoiceContactData, voiceContactDataArray]);
 
     const appDivRef = useRef<HTMLDivElement>(null);
 
@@ -110,15 +124,16 @@ const App = () => {
             //const delta = new Date().getTime() - serverTime;
             //voiceContactEvent.startTime = new Date(originStartTime + delta);
 
-            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+            if (currentVoiceContactDataRef.current?.interactionId === voiceContactEvent.interactionId) {
                 setCurrentVoiceContactData(voiceContactEvent);
+                if (voiceContactEvent.status === 'Disconnected') {
+                    setCurrentVoiceContactData(null);
+                }
             }
 
-            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+            setVoiceContactDataArray(arr => arr.filter(item => item.interactionId !== voiceContactEvent.interactionId));
             if (voiceContactEvent.status !== 'Disconnected') {
                 setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-            } else {
-                setCurrentVoiceContactData(null);
             }
         });
 
@@ -130,15 +145,16 @@ const App = () => {
             //const delta = new Date().getTime() - serverTime;
             //callContactEvent.startTime = new Date(originStartTime + delta);
 
-            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+            if (currentCallContactDataRef.current?.interactionId === callContactEvent.interactionId) {
                 setCurrentCallContactData(callContactEvent);
+                if (callContactEvent.status === 'Disconnected') {
+                    setCurrentCallContactData(null);
+                }
             }
 
-            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
+            setCallContactDataArray(arr => arr.filter(item => item.interactionId !== callContactEvent.interactionId));
             if (callContactEvent.status !== 'Disconnected') {
                 setCallContactDataArray(arr => [...arr, callContactEvent]);
-            } else {
-                setCurrentCallContactData(null);
             }
         });
 
@@ -157,16 +173,16 @@ const App = () => {
         console.log(cuser);
 
         const digital = async function () {
-            const refreshCaseList = async function () {
-                const _caseDataList = await digitalService.getDigitalContactSearchResult({
+            const refreshCaseArray = async function () {
+                const _caseDataArray = await digitalService.getDigitalContactSearchResult({
                     sortingType: SortingType.DESCENDING,
                     sorting: 'createdAt',
                     inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
-                console.log('Case data list', _caseDataList);
-                setCaseDataList([]);
-                (_caseDataList.data as Array<any>).reverse().forEach(c => setCaseDataList(arr => [c, ...arr]));
+                console.log('Case data Array', _caseDataArray);
+                setCaseDataArray([]);
+                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
             }
             // Digital SDK consumption
             CXoneDigitalClient.instance.initDigitalEngagement();
@@ -175,8 +191,8 @@ const App = () => {
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
                 console.log("onDigitalContactEvent", digitalContactEvent);
-                refreshCaseList();
-                if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                refreshCaseArray();
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                         setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
@@ -184,7 +200,7 @@ const App = () => {
                         }
                     } else {
                         if (digitalContactEvent.isCaseAssigned) {
-                            setMessageDataList([]);
+                            setMessageDataArray([]);
                             handleSetMessageData(digitalContactEvent.messages);
                         } else {
                             selectCaseItem(null);
@@ -192,24 +208,24 @@ const App = () => {
                     }
                 }
             });
-            await refreshCaseList();
+            await refreshCaseArray();
         }
         await digital();
     }
 
     useEffect(() => {
-        console.log('useEffect[messageDataList]...');
+        console.log('useEffect[messageDataArray]...');
         if (messageListDivRef?.current) {
             messageListDivRef.current.scrollTop = 9999;
         }
-    }, [messageDataList]);
+    }, [messageDataArray]);
 
     useEffect(() => {
-        console.log('useEffect[caseDataList]...');
+        console.log('useEffect[caseDataArray]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
-    }, [caseDataList]);
+    }, [caseDataArray]);
 
     useEffect(() => {
         console.log('useEffect...');
@@ -267,6 +283,7 @@ const App = () => {
             window.opener?.postMessage({ message }, "*");
             return;
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const sidebarCollapse = !localStorage.getItem('sidebar-collapse-open') || localStorage.getItem('sidebar-collapse-open') === '1' ? 'sidebar-collapse-open' : '';
@@ -320,7 +337,7 @@ const App = () => {
     }
 
     function handleFileSelect(event: any) {
-        if (currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -328,8 +345,8 @@ const App = () => {
         for (const file of files) {
             const messageData = {
                 chater: {
-                    name: currentUserInfo.user.fullName,
-                    avatar: currentUserInfo.user.publicImageUrl,
+                    name: currentUserInfoRef.current.user.fullName,
+                    avatar: currentUserInfoRef.current.user.publicImageUrl,
                     time: new Date().getTime()
                 },
                 content: `File attached: ${file.name}`,
@@ -337,13 +354,13 @@ const App = () => {
                 mediaType: null,
                 mediaUrl: null
             }
-            setMessageDataList(arr => [...arr, messageData]);
+            setMessageDataArray(arr => [...arr, messageData]);
         }
         event.target.value = '';
     }
 
     function handleImageSelect(event: any) {
-        if (currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -353,8 +370,8 @@ const App = () => {
             reader.onload = function (e: any) {
                 const messageData = {
                     chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
+                        name: currentUserInfoRef.current.user.fullName,
+                        avatar: currentUserInfoRef.current.user.publicImageUrl,
                         time: new Date().getTime()
                     },
                     content: `Image sent:`,
@@ -362,7 +379,7 @@ const App = () => {
                     mediaType: 'image',
                     mediaUrl: e.target.result
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -370,7 +387,7 @@ const App = () => {
     }
 
     function handleVideoSelect(event: any) {
-        if (currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -380,8 +397,8 @@ const App = () => {
             reader.onload = function (e: any) {
                 const messageData = {
                     chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
+                        name: currentUserInfoRef.current.user.fullName,
+                        avatar: currentUserInfoRef.current.user.publicImageUrl,
                         time: new Date().getTime()
                     },
                     content: `Video sent:`,
@@ -389,7 +406,7 @@ const App = () => {
                     mediaType: 'video',
                     mediaUrl: e.target.result
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -397,7 +414,7 @@ const App = () => {
     }
 
     async function toggleRecording() {
-        if (currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -425,7 +442,7 @@ const App = () => {
                         mediaType: 'audio',
                         mediaUrl: audioUrl
                     }
-                    setMessageDataList(arr => [...arr, messageData]);
+                    setMessageDataArray(arr => [...arr, messageData]);
                 };
 
                 mediaRecorder.start();
@@ -443,7 +460,7 @@ const App = () => {
     }
 
     async function sendMessage() {
-        if (currentCaseData == null || currentUserInfo == null || currentCaseData.channelId == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null || currentCaseDataRef.current.channelId == null) {
             alert('error');
             return;
         }
@@ -453,8 +470,8 @@ const App = () => {
             await cxoneDigitalContact.reply({
                 messageContent: { type: 'TEXT', payload: { text: message } },
                 recipients: [],
-                thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform }
-            }, currentCaseData.channelId, uuidv4())
+                thread: { idOnExternalPlatform: currentCaseDataRef.current.threadIdOnExternalPlatform }
+            }, currentCaseDataRef.current.channelId, uuidv4())
         }
     }
 
@@ -472,11 +489,11 @@ const App = () => {
                     mediaType: null,
                     mediaUrl: null
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
             } else {
                 let avatar = defaultUserAvatar;
-                if (m.authorUser.id === currentUserInfo?.user.id) {
-                    avatar = currentUserInfo.user.publicImageUrl;
+                if (m.authorUser.id === currentUserInfoRef.current?.user.id) {
+                    avatar = currentUserInfoRef.current.user.publicImageUrl;
                 }
                 const messageData = {
                     chater: {
@@ -489,7 +506,7 @@ const App = () => {
                     mediaType: null,
                     mediaUrl: null
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
             }
         });
     }
@@ -516,9 +533,9 @@ const App = () => {
 
     async function updateCaseStatus(event: any) {
         console.log('updateCaseStatus', event);
-        if (currentCaseData != null) {
+        if (currentCaseDataRef.current != null) {
             const cxoneDigitalContact = new CXoneDigitalContact();
-            cxoneDigitalContact.caseId = currentCaseData.id;
+            cxoneDigitalContact.caseId = currentCaseDataRef.current.id;
             await cxoneDigitalContact.changeStatus(event.target.value);
         }
     }
@@ -527,9 +544,8 @@ const App = () => {
         if (!ignoreSelectCallContactItem) {
             selectCallContactItem(null, true);
         }
-        _currentCaseData = caseData;
         setCurrentCaseData(caseData);
-        setMessageDataList([]);
+        setMessageDataArray([]);
         if (caseData?.id != null) {
             const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
             handleSetMessageData(conversationHistory.messages);
@@ -540,11 +556,9 @@ const App = () => {
         if (!ignoreSelectCaseItem) {
             selectCaseItem(null, true);
         }
-        _currentCallContactData = callContactData;
-        _currentVoiceContactData = voiceContactDataArray.filter(item => item.interactionId === callContactData?.interactionId)[0];
         setCurrentCallContactData(callContactData);
-        setCurrentVoiceContactData(_currentVoiceContactData);
-        setMessageDataList([]);
+        setCurrentVoiceContactData(voiceContactDataArrayRef.current.filter(item => item.interactionId === callContactData?.interactionId)[0]);
+        setMessageDataArray([]);
     }
 
     function handleAuthButtonClick() {
@@ -655,7 +669,7 @@ const App = () => {
                         </div>
                     </React.Fragment>
                 ))}
-                {caseDataList.map((caseData, index) => (
+                {caseDataArray.map((caseData, index) => (
                     <React.Fragment key={index}>
                         <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">
@@ -698,7 +712,7 @@ const App = () => {
                             </div>
                         </div>
                         <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
-                            {messageDataList.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
+                            {messageDataArray.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
                                 let media: any = null;
                                 if (messageData.mediaType && messageData.mediaUrl) {
                                     switch (messageData.mediaType) {

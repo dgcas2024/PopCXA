@@ -23,10 +23,6 @@ import React from "react";
 
 import './components/Call';
 
-let _currentCaseData: any = null;
-let _currentCallContactData: CallContactEvent | null = null;
-let _currentVoiceContactData: CXoneVoiceContact | null = null;
-
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
 const delay = (ms: number) => new Promise(rs => {
@@ -44,42 +40,52 @@ const IframeCases = () => {
 
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
     const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
-    useEffect(() => { _currentCallContactData = currentCallContactData }, [currentCallContactData]);
+    const currentCallContactDataRef = useRef(currentCallContactData);
 
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
     const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
-    useEffect(() => { _currentVoiceContactData = currentVoiceContactData }, [currentVoiceContactData]);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
 
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
-    useEffect(() => { _currentCaseData = currentCaseData }, [currentCaseData]);
+    const currentCaseDataRef = useRef(currentCaseData);
+
+    useEffect(() => {
+        currentCallContactDataRef.current = currentCallContactData;
+        voiceContactDataArrayRef.current = voiceContactDataArray;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+    }, [currentCallContactData, currentCaseData, currentVoiceContactData, voiceContactDataArray])
 
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
     const setupAcd = async () => {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
             console.log("voiceContactUpdateEvent", voiceContactEvent);
-            if (_currentVoiceContactData?.interactionId === voiceContactEvent.interactionId) {
+            if (currentVoiceContactDataRef.current?.interactionId === voiceContactEvent.interactionId) {
                 setCurrentVoiceContactData(voiceContactEvent);
+                if (voiceContactEvent.status === 'Disconnected') {
+                    setCurrentVoiceContactData(null);
+                }
             }
-            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+            setVoiceContactDataArray(arr => arr.filter(item => item.interactionId !== voiceContactEvent.interactionId));
             if (voiceContactEvent.status !== 'Disconnected') {
                 setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-            } else {
-                setCurrentVoiceContactData(null);
             }
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
             console.log("callContactEvent", callContactEvent);
-            if (_currentCallContactData?.interactionId === callContactEvent.interactionId) {
+            if (currentCallContactDataRef.current?.interactionId === callContactEvent.interactionId) {
                 setCurrentCallContactData(callContactEvent);
+                if (callContactEvent.status === 'Disconnected') {
+                    setCurrentCallContactData(null);
+                }
             }
-            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
+            setCallContactDataArray(arr => arr.filter(item => item.interactionId !== callContactEvent.interactionId));
             if (callContactEvent.status !== 'Disconnected') {
                 setCallContactDataArray(arr => [...arr, callContactEvent]);
-            } else {
-                setCurrentCallContactData(null);
             }
         });
 
@@ -88,19 +94,19 @@ const IframeCases = () => {
         console.log(cuser);
 
         const digital = async function () {
-            const refreshCaseList = async function (_delay: number | null) {
+            const refreshCaseArray = async function (_delay: number | null) {
                 if (_delay != null) {
                     await delay(_delay);
                 }
-                const _caseDataArray = await digitalService.getDigitalContactSearchResult({
+                const rs = await digitalService.getDigitalContactSearchResult({
                     sortingType: SortingType.DESCENDING,
                     sorting: 'createdAt',
                     inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
-                console.log('Case data list', _caseDataArray);
+                console.log('Case data array', rs);
                 setCaseDataArray([]);
-                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
+                (rs.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
             }
             // Digital SDK consumption
             CXoneDigitalClient.instance.initDigitalEngagement();
@@ -109,8 +115,8 @@ const IframeCases = () => {
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
                 console.log("onDigitalContactEvent", digitalContactEvent);
-                refreshCaseList(1000);
-                if (_currentCaseData?.id === digitalContactEvent.caseId) {
+                refreshCaseArray(1000);
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                         setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
@@ -127,7 +133,7 @@ const IframeCases = () => {
                     }
                 }
             });
-            await refreshCaseList(null);
+            await refreshCaseArray(null);
         }
         digital();
     }
@@ -198,7 +204,7 @@ const IframeCases = () => {
             selectCaseItem(null, true);
         }
         setCurrentCallContactData(callContactData);
-        setCurrentVoiceContactData(voiceContactDataArray.filter(item => item.interactionId === callContactData?.interactionId)[0]);
+        setCurrentVoiceContactData(voiceContactDataArrayRef.current.filter(item => item.interactionId === callContactData?.interactionId)[0]);
 
         if (callContactData != null) {
             window.parent?.postMessage({ openCaseDetail: true }, '*');

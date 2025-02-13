@@ -3,7 +3,7 @@ import './index.css';
 import App from './App';
 import IframeAuth from './IframeAuth';
 import IframeCases from './IframeCases';
-import IframeCaseDetail from './IframeCaseDetail';
+/*import IframeCaseDetail from './IframeCaseDetail';*/
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -20,9 +20,9 @@ if (iframe === 'auth') {
         <IframeCases />
     );
 } else if (iframe === 'caseDetail') {
-    root.render(
-        <IframeCaseDetail />
-    );
+    //root.render(
+    //    <IframeCaseDetail />
+    //);
 } else {
     root.render(
         <App />

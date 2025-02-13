@@ -7,8 +7,8 @@ import {
 import {
     AuthToken,
     CallContactEvent,
-    CXoneCase,
-    CXoneMessageArray
+    CXoneMessageArray,
+    CXoneCase
 } from "@nice-devone/common-sdk";
 import {
     CXoneAuth,
@@ -26,10 +26,6 @@ import React from "react";
 import './components/Call';
 import Call from "./components/Call";
 
-let _currentCaseData: any = null;
-let _currentCallContactData: CallContactEvent | null = null;
-let _currentVoiceContactData: CXoneVoiceContact | null = null;
-
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
 const IframeCaseDetail = () => {
@@ -41,14 +37,28 @@ const IframeCaseDetail = () => {
     const [, setAuthToken] = useState("");
 
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const currentUserInfoRef = useRef(currentUserInfo);
 
-    const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const currentCallContactDataRef = useRef(currentCallContactData);
 
-    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
 
-    const [messageDataList, setMessageDataList] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
+    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const currentCaseDataRef = useRef(currentCaseData);
+
+
+    const [messageDataArray, setMessageDataArray] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
+
+    useEffect(() => {
+        currentUserInfoRef.current = currentUserInfo;
+        currentCallContactDataRef.current = currentCallContactData;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+    }, [currentCallContactData, currentCaseData, currentUserInfo, currentVoiceContactData]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -57,18 +67,45 @@ const IframeCaseDetail = () => {
 
     const messageListDivRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        setMessageDataArray([]);
+        try {
+            const ccd = (JSON.parse(localStorage.getItem('currentCaseData') ?? '{}') as CXoneCase);
+            setCurrentCaseData(ccd);
+            const run = async () => {
+                const conversationHistory = await cxoneDigitalContact.loadConversationHistory(ccd.id);
+                handleSetMessageData(conversationHistory.messages);
+            }
+            run();
+        } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    //
+    //case?
+    //const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+    //handleSetMessageData(conversationHistory.messages);
+    //call?
+    //setMessageDataArray([]);
+
     const setupAcd = async function () {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-            setVoiceContactDataArray(voiceContactDataArray.filter(item => item.interactionId !== voiceContactEvent.interactionId));
-            if (voiceContactEvent.status !== 'Disconnected') {
-                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+            if (currentVoiceContactDataRef.current?.interactionId === voiceContactEvent.interactionId) {
+                setCurrentVoiceContactData(voiceContactEvent);
+                if (voiceContactEvent.status === 'Disconnected') {
+                    setCurrentVoiceContactData(null);
+                    // xxxxxxx đóng
+                }
             }
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-            setCallContactDataArray(callContactDataArray.filter(item => item.interactionId !== callContactEvent.interactionId));
-            if (callContactEvent.status !== 'Disconnected') {
-                setCallContactDataArray(arr => [...arr, callContactEvent]);
+            if (currentCallContactDataRef.current?.interactionId === callContactEvent.interactionId) {
+                setCurrentCallContactData(callContactEvent);
+                if (callContactEvent.status === 'Disconnected') {
+                    setCurrentCallContactData(null);
+                    // xxxxxxx đóng
+                }
             }
         });
 
@@ -82,18 +119,20 @@ const IframeCaseDetail = () => {
                 // Nothing
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                console.log("onDigitalContactEvent", digitalContactEvent);
-                if (_currentCaseData != null && _currentCaseData.id === digitalContactEvent.caseId) {
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
-                            selectCaseItem(null);
+                            setCurrentCaseData(null);
+                            // xxxxxxx đóng
                         }
                     } else {
                         if (digitalContactEvent.isCaseAssigned) {
-                            setMessageDataList([]);
+                            setMessageDataArray([]);
                             handleSetMessageData(digitalContactEvent.messages);
                         } else {
-                            selectCaseItem(null);
+                            setCurrentCaseData(null);
+                            // xxxxxxx đóng
                         }
                     }
                 }
@@ -107,7 +146,7 @@ const IframeCaseDetail = () => {
         if (messageListDivRef?.current) {
             messageListDivRef.current.scrollTop = 9999;
         }
-    }, [messageDataList]);
+    }, [messageDataArray]);
 
     useEffect(() => {
         console.log('useEffect...');
@@ -150,9 +189,6 @@ const IframeCaseDetail = () => {
             }
         });
         cxoneAuth.restoreData();
-
-        selectCaseItem(_currentCaseData);
-        selectCallContactItem(_currentCallContactData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -195,7 +231,7 @@ const IframeCaseDetail = () => {
     }
 
     function handleFileSelect(event: any) {
-        if (_currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -203,8 +239,8 @@ const IframeCaseDetail = () => {
         for (const file of files) {
             const messageData = {
                 chater: {
-                    name: currentUserInfo.user.fullName,
-                    avatar: currentUserInfo.user.publicImageUrl,
+                    name: currentUserInfoRef.current.user.fullName,
+                    avatar: currentUserInfoRef.current.user.publicImageUrl,
                     time: new Date().getTime()
                 },
                 content: `File attached: ${file.name}`,
@@ -212,13 +248,13 @@ const IframeCaseDetail = () => {
                 mediaType: null,
                 mediaUrl: null
             }
-            setMessageDataList(arr => [...arr, messageData]);
+            setMessageDataArray(arr => [...arr, messageData]);
         }
         event.target.value = '';
     }
 
     function handleImageSelect(event: any) {
-        if (_currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -228,8 +264,8 @@ const IframeCaseDetail = () => {
             reader.onload = function (e: any) {
                 const messageData = {
                     chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
+                        name: currentUserInfoRef.current.user.fullName,
+                        avatar: currentUserInfoRef.current.user.publicImageUrl,
                         time: new Date().getTime()
                     },
                     content: `Image sent:`,
@@ -237,7 +273,7 @@ const IframeCaseDetail = () => {
                     mediaType: 'image',
                     mediaUrl: e.target.result
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -245,7 +281,7 @@ const IframeCaseDetail = () => {
     }
 
     function handleVideoSelect(event: any) {
-        if (_currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -255,8 +291,8 @@ const IframeCaseDetail = () => {
             reader.onload = function (e: any) {
                 const messageData = {
                     chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
+                        name: currentUserInfoRef.current.user.fullName,
+                        avatar: currentUserInfoRef.current.user.publicImageUrl,
                         time: new Date().getTime()
                     },
                     content: `Video sent:`,
@@ -264,7 +300,7 @@ const IframeCaseDetail = () => {
                     mediaType: 'video',
                     mediaUrl: e.target.result
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
                 event.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -272,7 +308,7 @@ const IframeCaseDetail = () => {
     }
 
     async function toggleRecording() {
-        if (_currentCaseData == null || currentUserInfo == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
             alert('error');
             return;
         }
@@ -291,8 +327,8 @@ const IframeCaseDetail = () => {
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const messageData = {
                         chater: {
-                            name: currentUserInfo.user.fullName,
-                            avatar: currentUserInfo.user.publicImageUrl,
+                            name: currentUserInfoRef.current.user.fullName,
+                            avatar: currentUserInfoRef.current.user.publicImageUrl,
                             time: new Date().getTime()
                         },
                         content: `Voice message:`,
@@ -300,7 +336,7 @@ const IframeCaseDetail = () => {
                         mediaType: 'audio',
                         mediaUrl: audioUrl
                     }
-                    setMessageDataList(arr => [...arr, messageData]);
+                    setMessageDataArray(arr => [...arr, messageData]);
                 };
 
                 mediaRecorder.start();
@@ -318,7 +354,7 @@ const IframeCaseDetail = () => {
     }
 
     async function sendMessage() {
-        if (_currentCaseData == null || currentUserInfo == null || _currentCaseData.channelId == null) {
+        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null || currentCaseDataRef.current.channelId == null) {
             alert('error');
             return;
         }
@@ -328,8 +364,8 @@ const IframeCaseDetail = () => {
             await cxoneDigitalContact.reply({
                 messageContent: { type: 'TEXT', payload: { text: message } },
                 recipients: [],
-                thread: { idOnExternalPlatform: _currentCaseData.threadIdOnExternalPlatform }
-            }, _currentCaseData.channelId, uuidv4())
+                thread: { idOnExternalPlatform: currentCaseDataRef.current.threadIdOnExternalPlatform }
+            }, currentCaseDataRef.current.channelId, uuidv4())
         }
     }
 
@@ -347,11 +383,11 @@ const IframeCaseDetail = () => {
                     mediaType: null,
                     mediaUrl: null
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
             } else {
                 let avatar = defaultUserAvatar;
-                if (m.authorUser.id === currentUserInfo?.user.id) {
-                    avatar = currentUserInfo.user.publicImageUrl;
+                if (m.authorUser.id === currentUserInfoRef.current?.user.id) {
+                    avatar = currentUserInfoRef.current.user.publicImageUrl;
                 }
                 const messageData = {
                     chater: {
@@ -364,39 +400,18 @@ const IframeCaseDetail = () => {
                     mediaType: null,
                     mediaUrl: null
                 }
-                setMessageDataList(arr => [...arr, messageData]);
+                setMessageDataArray(arr => [...arr, messageData]);
             }
         });
     }
 
     async function updateCaseStatus(event: any) {
         console.log('updateCaseStatus', event);
-        if (_currentCaseData != null) {
+        if (currentCaseDataRef.current != null) {
             const cxoneDigitalContact = new CXoneDigitalContact();
-            cxoneDigitalContact.caseId = _currentCaseData.id;
+            cxoneDigitalContact.caseId = currentCaseDataRef.current.id;
             await cxoneDigitalContact.changeStatus(event.target.value);
         }
-    }
-
-    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false) {
-        if (!ignoreSelectCallContactItem) {
-            selectCallContactItem(null, true);
-        }
-        _currentCaseData = caseData;
-        setMessageDataList([]);
-        if (caseData?.id != null) {
-            const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
-            handleSetMessageData(conversationHistory.messages);
-        }
-    }
-
-    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem = false) {
-        if (!ignoreSelectCaseItem) {
-            selectCaseItem(null, true);
-        }
-        _currentCallContactData = callContactData;
-        _currentVoiceContactData = voiceContactDataArray.filter(item => item.interactionId === callContactData?.interactionId)[0];
-        setMessageDataList([]);
     }
 
     if (authState !== "AUTHENTICATED") {
@@ -422,34 +437,34 @@ const IframeCaseDetail = () => {
     return (
         <div className={`app`}>
             <div className="chat-container">
-                {_currentCallContactData != null ? (
+                {currentCallContactData != null ? (
                     <React.Fragment>
                         <div className="chat-header">
                             <div className="profile-info">
                                 <img src={defaultUserAvatar} alt="Case" className="avatar" />
                                 <div>
-                                    <div className="profile-info-name">{_currentCallContactData.ani}</div>
-                                    <div className="message-time" data-starttime={_currentCallContactData.startTime}>00:00:00</div>
+                                    <div className="profile-info-name">{currentCallContactData.ani}</div>
+                                    <div className="message-time" data-starttime={currentCallContactData.startTime}>00:00:00</div>
                                 </div>
                             </div>
                         </div>
                         <div className="chat-messages" id="chatMessages">
-                            <Call currentCallContactData={_currentCallContactData} currentVoiceContactData={_currentVoiceContactData}></Call>
+                            <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData}></Call>
                         </div>
                     </React.Fragment>
                 ) : (
                     <React.Fragment>
                         <div className="chat-header">
                             <div className="profile-info">
-                                    <img src={_currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Case" className="avatar" />
+                                    <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Case" className="avatar" />
                                 <div>
-                                    <div className="profile-info-name">{_currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
-                                    <div className="message-time">#{_currentCaseData?.id}:{_currentCaseData?.status} {_currentCaseData?.channelId ?? 'N/A'}</div>
+                                    <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
+                                    <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
                                 </div>
                             </div>
                         </div>
                         <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
-                            {messageDataList.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
+                            {messageDataArray.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
                                 let media: any = null;
                                 if (messageData.mediaType && messageData.mediaUrl) {
                                     switch (messageData.mediaType) {
@@ -484,7 +499,7 @@ const IframeCaseDetail = () => {
                                 )
                             })}
                         </div>
-                        <div className={`chat-input ${(_currentCaseData == null || _currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
+                        <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
                             <div className="attachment-options">
                                 <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
                                 <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
@@ -497,12 +512,12 @@ const IframeCaseDetail = () => {
                                 <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
                                 <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
 
-                                <select value={_currentCaseData?.status} onChange={updateCaseStatus}>
+                                <select value={currentCaseData?.status} onChange={updateCaseStatus}>
                                     {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
                                         .map((status, index) => {
                                             return (
                                                 <React.Fragment key={index}>
-                                                    <option disabled={(_currentCaseData?.status === 'closed' || (_currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
+                                                    <option disabled={(currentCaseData?.status === 'closed' || (currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
                                                 </React.Fragment>
                                             );
                                         })}

@@ -67,6 +67,8 @@ const IframeCases = () => {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
                     setCurrentVoiceContactData(null);
+                    localStorage.removeItem('currentVoiceContactData');
+                    window.parent?.postMessage({ hideCaseDetail: true }, '*');
                 }
             }
             setVoiceContactDataArray(arr => arr.filter(item => item.interactionId !== voiceContactEvent.interactionId));
@@ -81,6 +83,8 @@ const IframeCases = () => {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
                     setCurrentCallContactData(null);
+                    localStorage.removeItem('currentCallContactData');
+                    window.parent?.postMessage({ hideCaseDetail: true }, '*');
                 }
             }
             setCallContactDataArray(arr => arr.filter(item => item.interactionId !== callContactEvent.interactionId));
@@ -121,6 +125,7 @@ const IframeCases = () => {
                         setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
                             selectCaseItem(null);
+                            localStorage.removeItem('currentCaseData');
                             window.parent?.postMessage({ hideCaseDetail: true }, '*');
                         }
                     } else {
@@ -128,6 +133,7 @@ const IframeCases = () => {
                             // Nothing
                         } else {
                             selectCaseItem(null);
+                            localStorage.removeItem('currentCaseData');
                             window.parent?.postMessage({ hideCaseDetail: true }, '*');
                         }
                     }
@@ -195,6 +201,9 @@ const IframeCases = () => {
         }
         setCurrentCaseData(caseData);
         if (caseData != null) {
+            try {
+                localStorage.setItem('currentCaseData', JSON.stringify(caseData));
+            } catch { }
             window.parent?.postMessage({ openCaseDetail: true }, '*');
         }
     }
@@ -204,9 +213,14 @@ const IframeCases = () => {
             selectCaseItem(null, true);
         }
         setCurrentCallContactData(callContactData);
-        setCurrentVoiceContactData(voiceContactDataArrayRef.current.filter(item => item.interactionId === callContactData?.interactionId)[0]);
+        const voiceContactData = voiceContactDataArrayRef.current.filter(item => item.interactionId === callContactData?.interactionId)[0];
+        setCurrentVoiceContactData(voiceContactData);
 
         if (callContactData != null) {
+            try {
+                localStorage.setItem('currentCallContactData', JSON.stringify(callContactData));
+                localStorage.setItem('currentVoiceContactData', JSON.stringify(voiceContactData));
+            } catch { }
             window.parent?.postMessage({ openCaseDetail: true }, '*');
         }
     }

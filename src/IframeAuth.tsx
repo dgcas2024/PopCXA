@@ -7,6 +7,7 @@ import {
     AuthToken,
     UnavailableCode,
     AgentStateEvent,
+    AgentLegEvent
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -15,6 +16,7 @@ import {
     AuthStatus,
 } from "@nice-devone/auth-sdk";
 import { DigitalService } from "@nice-devone/digital-sdk";
+import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
 import React from "react";
 
 import './components/Call';
@@ -36,11 +38,26 @@ const IframeAuth = ({ iframeText }: any) => {
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
+    const [dialNumber, setDialNumber] = useState('');
+
+    const currentUserInfoRef = useRef(currentUserInfo);
+
+    useEffect(() => {
+        currentUserInfoRef.current = currentUserInfo;
+    }, [currentUserInfo]);
 
     const setupAcd = async () => {
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
             setAgentStatus(agentState);
             console.log('agentState', agentState);
+        });
+        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
+            console.log('agentLegEvent', data);
+            if (data.status === "Dialing") {
+                CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
+                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                console.log('agentLegEvent: kkkkkkkkk');
+            }
         });
 
         const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
@@ -176,6 +193,20 @@ const IframeAuth = ({ iframeText }: any) => {
             );
         });
     }
+
+    const handleDial = async () => {
+        if (!dialNumber) {
+            alert('please enter dial number');
+            return;
+        }
+        const skills = await CXoneAcdClient.instance.getAgentSkills(currentUserInfoRef.current.user.agentId);
+        console.log(skills)
+        const dialInfo = {
+            skillId: skills[0].skillId,
+            phoneNumber: dialNumber,
+        };
+        await CXoneAcdClient.instance.contactManager.voiceService.dialPhone(dialInfo);
+    };
 
     if (authState !== "AUTHENTICATED") {
         if (authState === "AUTHENTICATING") {
@@ -342,6 +373,46 @@ const IframeAuth = ({ iframeText }: any) => {
                     })}
                     <option value="0000">Logout</option>
                 </select>
+
+                <div style={{ display: 'flex', gap: '5px' }}>
+                    <div style={{ 
+                        display: 'flex',
+                        border: '1px solid #ccc',
+                        borderRadius: '5px',
+                        overflow: 'hidden' 
+                    }}>
+                        <input
+                            type="text"
+                            value={dialNumber}
+                            onChange={(e) => setDialNumber(e.target.value)}
+                            placeholder="Dial number"
+                            style={{
+                                padding: '6px 12px',
+                                border: 'none',
+                                fontSize: '14px',
+                                outline: 'none',
+                                width: '130px'
+                            }}
+                        />
+                        <button
+                            onClick={handleDial}
+                            style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                borderLeft: '1px solid rgba(255,255,255,0.2)',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                            }}
+                        >
+                            <i className="fas fa-phone"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

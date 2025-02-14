@@ -18,7 +18,8 @@ import {
     UserInfo,
     CallContactEvent,
     CXoneCase,
-    CXoneMessageArray
+    CXoneMessageArray,
+    AgentLegEvent
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -105,6 +106,8 @@ const App = () => {
 
     const messageListDivRef = useRef<HTMLDivElement>(null);
     const caseListDivRef = useRef<HTMLDivElement>(null);
+
+    const [dialNumber, setDialNumber] = useState('');
 
     const setupAcd = async function () {
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
@@ -211,6 +214,15 @@ const App = () => {
             await refreshCaseArray();
         }
         await digital();
+
+        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
+            console.log('agentLegEvent', data);
+            if (data.status === "Dialing") {
+                CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
+                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                console.log('agentLegEvent: kkkkkkkkk');
+            }
+        });
     }
 
     useEffect(() => {
@@ -585,6 +597,20 @@ const App = () => {
         });
     }
 
+    const handleDial = async () => {
+        if (!dialNumber) {
+            alert('please enter dial number');
+            return;
+        }
+        const skills = await CXoneAcdClient.instance.getAgentSkills(currentUserInfoRef.current.user.agentId);
+        console.log(skills)
+        const dialInfo = {
+            skillId: skills[0].skillId,
+            phoneNumber: dialNumber,
+        };
+        await CXoneAcdClient.instance.contactManager.voiceService.dialPhone(dialInfo);
+    };
+
     if (authState !== "AUTHENTICATED") {
         if (authState === "AUTHENTICATING") {
             return (
@@ -665,6 +691,47 @@ const App = () => {
                             })}
                             <option value="0000">Logout</option>
                         </select>
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <div style={{ 
+                            display: 'flex',
+                            border: '1px solid #ccc',
+                            borderRadius: '5px',
+                            overflow: 'hidden',
+                            width: '100%',
+                            marginTop: '5px'
+                        }}>
+                            <input
+                                type="text"
+                                value={dialNumber}
+                                onChange={(e) => setDialNumber(e.target.value)}
+                                placeholder="Dial number"
+                                style={{
+                                    padding: '6px 12px',
+                                    border: 'none',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    width: '100%'
+                                }}
+                            />
+                            <button
+                                onClick={handleDial}
+                                style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderLeft: '1px solid rgba(255,255,255,0.2)',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}
+                            >
+                                <i className="fas fa-phone"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {callContactDataArray.map((callContactData, index) => (

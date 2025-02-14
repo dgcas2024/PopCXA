@@ -242,7 +242,19 @@ const IframeAuth = ({ iframeText }: any) => {
                         margin: '0 auto'
                     }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <select style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '12px', outline: 'none' }} onChange={voiceConnection_handleSelectChange}>
+                            <select style={{
+                                borderRadius: '5px', fontSize: '14px', outline: 'none',
+                                padding: '6px 30px 6px 12px',
+                                border: '1px solid #ccc',
+                                backgroundColor: '#fff',
+                                color: '#333',
+                                cursor: 'pointer',
+                                appearance: 'none',
+                                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 8px center',
+                                backgroundSize: '16px'
+                            }} onChange={voiceConnection_handleSelectChange}>
                                 <option value="phoneNumber">Phone Number</option>
                                 <option value="stationId">Station ID</option>
                                 <option value="softphone">Integrated Softphone</option>
@@ -297,7 +309,19 @@ const IframeAuth = ({ iframeText }: any) => {
                     <div>{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                     <div style={{ fontSize: '11px', color: '#888' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                 </div>
-                <select style={{ fontSize: '14px', padding: '2px', outline: 'none' }} onChange={updateAgentState} value={JSON.stringify(currentState)}>
+                <select style={{
+                    borderRadius: '5px', fontSize: '14px', outline: 'none',
+                    padding: '6px 30px 6px 12px',
+                    border: '1px solid #ccc',
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                    backgroundSize: '16px'
+                }} onChange={updateAgentState} value={JSON.stringify(currentState)}>
                     <option value={JSON.stringify({ state: 'available', reason: '' })}>Available</option>
                     {otherStates.map((item, index) => {
                         return (

@@ -635,7 +635,19 @@ const App = () => {
                         </div>
                     </div>
                     <div className="agent-status">
-                        <select className="status-selector" onChange={updateAgentState} value={JSON.stringify(currentState)}>
+                        <select className="status-selector" onChange={updateAgentState} value={JSON.stringify(currentState)} style={{
+                            borderRadius: '5px', fontSize: '14px', outline: 'none',
+                            padding: '6px 30px 6px 12px',
+                            border: '1px solid #ccc',
+                            backgroundColor: '#fff',
+                            color: '#333',
+                            cursor: 'pointer',
+                            appearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 8px center',
+                            backgroundSize: '16px'
+                        }}>
                             <option value={JSON.stringify({ state: 'available', reason: '' })}>Available</option>
                             {otherStates.map((item, index) => {
                                 return (
@@ -760,7 +772,19 @@ const App = () => {
                                 <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
                                 <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
 
-                                <select value={currentCaseData?.status} onChange={updateCaseStatus}>
+                                <select value={currentCaseData?.status} onChange={updateCaseStatus} style={{
+                                    borderRadius: '5px', fontSize: '14px', outline: 'none',
+                                    padding: '6px 30px 6px 12px',
+                                    border: '1px solid #ccc',
+                                    backgroundColor: '#fff',
+                                    color: '#333',
+                                    cursor: 'pointer',
+                                    appearance: 'none',
+                                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 8px center',
+                                    backgroundSize: '16px'
+                                }}>
                                     {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
                                         .map((status, index) => {
                                             return (

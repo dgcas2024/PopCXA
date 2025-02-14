@@ -75,7 +75,8 @@ function SessionConnectionSelect({ setupAcd }: any) {
             marginTop: '5px',
             border: '1px solid #ccc',
             borderRadius: '4px',
-            boxSizing: 'border-box' 
+            boxSizing: 'border-box',
+            outline: 'none'
         },
         phoneNumberSection: {
             marginTop: '15px'

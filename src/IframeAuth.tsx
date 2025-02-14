@@ -266,7 +266,10 @@ const IframeAuth = ({ iframeText }: any) => {
                                 value={voiceConnection_inputValue}
                                 onChange={(e) => voiceConnection_setInputValue(e.target.value)}
                                 disabled={voiceConnection_isInputDisabled}
-                                style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '12px' }} />
+                                style={{
+                                    padding: '8px 12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '12px',
+                                    outline: 'none'
+                                }} />
                         </div>
 
                         <button style={{

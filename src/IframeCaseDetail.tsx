@@ -97,7 +97,6 @@ const IframeCaseDetail = () => {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
                     setCurrentVoiceContactData(null);
-                    // xxxxxxx đóng
                 }
             }
         });
@@ -107,7 +106,6 @@ const IframeCaseDetail = () => {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
                     setCurrentCallContactData(null);
-                    // xxxxxxx đóng
                 }
             }
         });
@@ -127,7 +125,6 @@ const IframeCaseDetail = () => {
                         setCurrentCaseData(digitalContactEvent.case);
                         if (digitalContactEvent.case.status === 'closed') {
                             setCurrentCaseData(null);
-                            // xxxxxxx đóng
                         }
                     } else {
                         if (digitalContactEvent.isCaseAssigned) {
@@ -135,7 +132,6 @@ const IframeCaseDetail = () => {
                             handleSetMessageData(digitalContactEvent.messages);
                         } else {
                             setCurrentCaseData(null);
-                            // xxxxxxx đóng
                         }
                     }
                 }
@@ -417,6 +413,12 @@ const IframeCaseDetail = () => {
         }
     }
 
+    const handleClose = () => {
+        setCurrentCaseData(null);
+        setCurrentVoiceContactData(null);
+        window.parent?.postMessage({ hideCaseDetail: true }, '*');
+    };
+
     if (authState !== "AUTHENTICATED") {
         return (
             <div className="app">
@@ -465,6 +467,28 @@ const IframeCaseDetail = () => {
                                     <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
                                 </div>
                             </div>
+                            <button 
+                                onClick={handleClose}
+                                style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    transition: 'background-color 0.2s',
+                                    zIndex: 1000
+                                }}
+                            >
+                                <i className="fas fa-times" style={{fontSize: '16px', color: '#666'}}></i>
+                            </button>
                         </div>
                         <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
                             {messageDataArray.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {

@@ -152,6 +152,12 @@ const IframeCases = () => {
     }, [caseDataArray]);
 
     useEffect(() => {
+        window.addEventListener('message', function (evt) {
+            if (evt.data.hideCaseDetail) {
+                selectCallContactItem(null);
+                selectCaseItem(null);
+            }
+        })
         console.log('useEffect...');
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {

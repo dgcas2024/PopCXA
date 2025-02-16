@@ -35,7 +35,7 @@ import {
     DigitalService,
 } from "@nice-devone/digital-sdk";
 import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
-import { CXoneClient, ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
+import { CXoneClient, ContactService, VoiceControlService, AgentLegService } from "@nice-devone/agent-sdk";
 import React from "react";
 
 import './components/Call';
@@ -107,7 +107,7 @@ const App = () => {
     const messageListDivRef = useRef<HTMLDivElement>(null);
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
-    const [dialNumber, setDialNumber] = useState('');
+    const [dialNumber, setDialNumber] = useState('+84328523152');
 
     const setupAcd = async function () {
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
@@ -219,8 +219,6 @@ const App = () => {
             console.log('agentLegEvent', data);
             if (data.status === "Dialing") {
                 CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
-                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
-                console.log('agentLegEvent: kkkkkkkkk');
             }
         });
     }

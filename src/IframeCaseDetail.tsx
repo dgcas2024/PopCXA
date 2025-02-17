@@ -83,7 +83,7 @@ const IframeCaseDetail = () => {
         try {
             const callContactData = (JSON.parse(localStorage.getItem('currentCallContactData') ?? '{}') as CallContactEvent);
             const voiceContactData = (JSON.parse(localStorage.getItem('currentVoiceContactData') ?? '{}') as CXoneVoiceContact);
-            if (callContactData?.interactionId) {
+            if (callContactData?.contactId) {
                 setCurrentCallContactData(callContactData);
                 setCurrentVoiceContactData(voiceContactData);
             }
@@ -93,7 +93,7 @@ const IframeCaseDetail = () => {
 
     const setupAcd = async function () {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-            if (currentVoiceContactDataRef.current?.interactionId === voiceContactEvent.interactionId) {
+            if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
                     setCurrentVoiceContactData(null);
@@ -102,7 +102,7 @@ const IframeCaseDetail = () => {
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-            if (currentCallContactDataRef.current?.interactionId === callContactEvent.interactionId) {
+            if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
                     setCurrentCallContactData(null);

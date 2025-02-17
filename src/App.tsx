@@ -127,14 +127,14 @@ const App = () => {
             //const delta = new Date().getTime() - serverTime;
             //voiceContactEvent.startTime = new Date(originStartTime + delta);
 
-            if (currentVoiceContactDataRef.current?.interactionId === voiceContactEvent.interactionId) {
+            if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
                     setCurrentVoiceContactData(null);
                 }
             }
 
-            setVoiceContactDataArray(arr => arr.filter(item => item.interactionId !== voiceContactEvent.interactionId));
+            setVoiceContactDataArray(arr => arr.filter(item => item.contactID !== voiceContactEvent.contactID));
             if (voiceContactEvent.status !== 'Disconnected') {
                 setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
             }
@@ -148,14 +148,14 @@ const App = () => {
             //const delta = new Date().getTime() - serverTime;
             //callContactEvent.startTime = new Date(originStartTime + delta);
 
-            if (currentCallContactDataRef.current?.interactionId === callContactEvent.interactionId) {
+            if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
                     setCurrentCallContactData(null);
                 }
             }
 
-            setCallContactDataArray(arr => arr.filter(item => item.interactionId !== callContactEvent.interactionId));
+            setCallContactDataArray(arr => arr.filter(item => item.contactId !== callContactEvent.contactId));
             if (callContactEvent.status !== 'Disconnected') {
                 setCallContactDataArray(arr => [...arr, callContactEvent]);
             }
@@ -567,7 +567,7 @@ const App = () => {
             selectCaseItem(null, true);
         }
         setCurrentCallContactData(callContactData);
-        setCurrentVoiceContactData(voiceContactDataArrayRef.current.filter(item => item.interactionId === callContactData?.interactionId)[0]);
+        setCurrentVoiceContactData(voiceContactDataArrayRef.current.filter(item => item.contactID === callContactData?.contactId)[0]);
         setMessageDataArray([]);
     }
 
@@ -734,7 +734,7 @@ const App = () => {
                 </div>
                 {callContactDataArray.map((callContactData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.interactionId === callContactData.interactionId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
+                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.contactId === callContactData.contactId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
                             <div className="case-preview">
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">

@@ -41,15 +41,72 @@ import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
 import { CXoneClient, ContactService, VoiceControlService, AgentLegService } from "@nice-devone/agent-sdk";
 import React from "react";
 
+interface Agent {
+  id: string;
+  name: string;
+  status: string;
+  avatar?: string;
+}
+
 const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
-    const agentLegService = new AgentLegService();
-
-    useEffect(() => {
-        
-    }, []);
-
     const voiceControlService = new VoiceControlService();
     const contactService = new ContactService();
+    const [showTransferModal, setShowTransferModal] = useState(false);
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+
+    useEffect(() => {
+        if (showTransferModal) {
+            loadAvailableAgents();
+        }
+    }, [showTransferModal]);
+
+    const loadAvailableAgents = async () => {
+        try {
+            const response: any = [{
+                id: '1',
+                name: 'xxxx',
+                state: 'Available'
+            }];
+            const onlineAgents = response.filter((agent: any) => 
+                agent.state === 'Available' || agent.state === 'Working'
+            );
+            const formattedAgents = onlineAgents.map((agent: any) => ({
+                id: agent.agentId,
+                name: agent.name || 'Unknown Agent',
+                status: agent.state,
+                avatar: 'https://app-eu1.brandembassy.com/img/user-default.png'
+            }));
+            setAgents(formattedAgents);
+        } catch (error) {
+            console.error('Error loading agents:', error);
+        }
+    };
+
+    const handleTransfer = async () => {
+        if (!selectedAgent || !currentVoiceContactData) {
+            alert('Please select an agent to transfer to');
+            return;
+        }
+
+        try {
+            await CXoneAcdClient.instance.contactManager.voiceService.transferContact();
+            setShowTransferModal(false);
+            setSelectedAgent(null);
+        } catch (error) {
+            console.error('Error transferring call:', error);
+            alert('Failed to transfer call. Please try again.');
+        }
+    };
+
+    const handleColdTransfer = async () => {
+        await CXoneAcdClient.instance.contactManager.voiceService.transferContact();
+    };
+
+    const filteredAgents = agents.filter(agent => 
+        agent.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const _currentCallContactData = currentCallContactData as CallContactEvent;
     const _currentVoiceContactData = currentVoiceContactData as CXoneVoiceContact;
@@ -60,10 +117,6 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
 
     async function handleReject() {
         await voiceControlService.endContact(_currentCallContactData.contactId);
-    }
-
-    async function handleTransfer() {
-
     }
 
     async function handleHold() {
@@ -94,55 +147,111 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
         await voiceControlService.endContact(_currentCallContactData.contactId);
     }
 
+    const transferModal = showTransferModal && (
+        <React.Fragment>
+            <div className="transfer-modal-backdrop" onClick={() => setShowTransferModal(false)} />
+            <div className="transfer-modal">
+                <div className="transfer-modal-header">
+                    <h3>Transfer Call</h3>
+                    <button className="transfer-modal-close" onClick={() => setShowTransferModal(false)}>×</button>
+                </div>
+                
+                <input
+                    type="text"
+                    className="transfer-search"
+                    placeholder="Search agents..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+
+                <div className="transfer-agents-list">
+                    {filteredAgents.map(agent => (
+                        <div key={agent.id} className={`transfer-agent-item ${selectedAgent?.id === agent.id ? 'selected' : ''}`} onClick={() => setSelectedAgent(agent)}>
+                            <img src={agent.avatar} alt={agent.name} className="transfer-agent-avatar"/>
+                            <div className="transfer-agent-info">
+                                <div className="transfer-agent-name">{agent.name}</div>
+                                <div className="transfer-agent-status">{agent.status}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ marginTop: '15px', textAlign: 'right' }}>
+                    <button className="action-button transfer" onClick={handleTransfer} disabled={!selectedAgent} style={{ width: 'auto', padding: '0 20px', margin: 'auto' }}>
+                        <i className="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </React.Fragment>
+    );
+
     return (
         <div className="call-container">
             <div className="caller-info">
                 <div className="caller-avatar">
                     <i className="fas fa-user fa-2x" style={{ color: '#666' }}></i>
                 </div>
-                <div className="caller-name">{_currentCallContactData.ani}</div>
+                <div className="caller-name">{_currentCallContactData.ani}{_currentCallContactData.ani === "REAGENT" ? (<div style={{ fontSize: '14px', color: '#777' }}>{_currentCallContactData.dnis}</div>) : (<></>)}</div>
                 {/*<div className="caller-number">{_currentCallContactData.ani}</div>*/}
                 <div className="call-status">{_currentCallContactData.status}</div>
                 <div className="timer" data-starttime={_currentCallContactData.startTime}>00:00:00</div>
             </div>
-            {_currentCallContactData.status === "Active" || _currentCallContactData.status === "Holding" || _currentCallContactData.status === "Masking" ? (
-                <React.Fragment>
-                    <div className="call-controls">
-                        <button disabled={_currentCallContactData.status === "Masking"} className={`action-button hold ${_currentVoiceContactData.status === 'Holding' ? 'active' : ''}`} onClick={handleHold}>
-                            <i className="fas fa-pause"></i>
-                            <i className="fas fa-play active-ico"></i>
+            {
+                _currentCallContactData.ani === "REAGENT" && _currentCallContactData.status === "Active" && (
+                    <div className="call-actions">
+                        <button className="action-button transfer" onClick={handleColdTransfer}>
+                            <i className="fas fa-exchange-alt" style={{ color: '#f44336' }}></i>
                         </button>
-                        <button className={`action-button mute ${_currentVoiceContactData.agentMuted ? 'active' : ''}`} onClick={handleMute}>
-                            <i className="fas fa-microphone"></i>
-                            <i className="fas fa-microphone-slash active-ico"></i>
-                        </button>
-                        <button disabled={_currentVoiceContactData.status === 'Holding'} className={`action-button mask ${_currentCallContactData.status === "Masking" ? 'active' : ''}`} onClick={handleMask}>
-                            <i className="fas fa-masks-theater"></i>
-                            <i className="fas fa-masks-theater active-ico"></i>
-                        </button>
-                    </div>
-                    <div className="call-controls">
-                        <button className="action-button transfer" onClick={handleTransfer}>
-                            <i className="fas fa-exchange-alt"></i>
-                        </button>
-                        <button disabled={_currentVoiceContactData.status === 'Holding' || _currentVoiceContactData.agentMuted || _currentCallContactData.status === "Masking"} className="action-button hangup" onClick={handleHangup}>
+                        <button className="action-button hangup" onClick={handleHangup}>
                             <i className="fas fa-phone-slash"></i>
                         </button>
                     </div>
-                </React.Fragment>
-            ) : (
-                <div className="call-actions">
-                    <button className="action-button accept" onClick={handleAccept}>
-                        <i className="fas fa-phone"></i>
-                    </button>
-                    <button className="action-button reject" onClick={handleReject}>
-                        <i className="fas fa-phone-slash"></i>
-                    </button>
-                    <button className="action-button transfer" onClick={handleTransfer}>
-                        <i className="fas fa-exchange-alt"></i>
-                    </button>
-                </div>
-            )}
+                )
+            }
+            {
+                _currentCallContactData.ani !== "REAGENT" && (_currentCallContactData.status === "Active" || _currentCallContactData.status === "Holding" || _currentCallContactData.status === "Masking") && (
+                    <React.Fragment>
+                        <div className="call-controls">
+                            <button disabled={_currentCallContactData.status === "Masking"} className={`action-button hold ${_currentVoiceContactData.status === 'Holding' ? 'active' : ''}`} onClick={handleHold}>
+                                <i className="fas fa-pause"></i>
+                                <i className="fas fa-play active-ico"></i>
+                            </button>
+                            <button className={`action-button mute ${_currentVoiceContactData.agentMuted ? 'active' : ''}`} onClick={handleMute}>
+                                <i className="fas fa-microphone"></i>
+                                <i className="fas fa-microphone-slash active-ico"></i>
+                            </button>
+                            <button disabled={_currentVoiceContactData.status === 'Holding'} className={`action-button mask ${_currentCallContactData.status === "Masking" ? 'active' : ''}`} onClick={handleMask}>
+                                <i className="fas fa-masks-theater"></i>
+                                <i className="fas fa-masks-theater active-ico"></i>
+                            </button>
+                        </div>
+                        <div className="call-controls">
+                            <button className="action-button transfer" onClick={() => setShowTransferModal(true)}>
+                                <i className="fas fa-exchange-alt"></i>
+                            </button>
+                            <button disabled={_currentVoiceContactData.status === 'Holding' || _currentVoiceContactData.agentMuted || _currentCallContactData.status === "Masking"} className="action-button hangup" onClick={handleHangup}>
+                                <i className="fas fa-phone-slash"></i>
+                            </button>
+                        </div>
+                    </React.Fragment>
+                )
+            }
+            {
+                _currentCallContactData.ani !== "REAGENT" && _currentCallContactData.status === "Incoming" && (
+                    <div className="call-actions">
+                        <button className="action-button accept" onClick={handleAccept}>
+                            <i className="fas fa-phone"></i>
+                        </button>
+                        <button className="action-button reject" onClick={handleReject}>
+                            <i className="fas fa-phone-slash"></i>
+                        </button>
+                        <button className="action-button transfer" onClick={() => setShowTransferModal(true)}>
+                            <i className="fas fa-exchange-alt"></i>
+                        </button>
+                    </div>
+                )
+            }
+            {transferModal}
         </div>
     );
 };

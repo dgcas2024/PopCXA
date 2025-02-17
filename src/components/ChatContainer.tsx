@@ -4,6 +4,7 @@ import { CallContactEvent, CXoneCase, } from "@nice-devone/common-sdk";
 import { CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import Call from './Call';
 import { CXoneDigitalContact } from '@nice-devone/digital-sdk';
+import { string } from 'yup/lib/locale';
 
 function formatDateTime(date: number | Date) {
     let _date = 0;
@@ -54,6 +55,10 @@ interface ChatContainerProps {
     setMessageDataArray: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
+let isRecording = false;
+let mediaRecorder: any = null;
+let audioChunks: any = [];
+
 const ChatContainer: React.FC<ChatContainerProps> = ({
     currentUserInfo,
     currentCallContactData,
@@ -81,16 +86,284 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     const messageListDivRef = useRef<HTMLDivElement>(null);
 
-    let isRecording = false;
-    let mediaRecorder: any = null;
-    let audioChunks: any = [];
-
     useEffect(() => {
         console.log('useEffect[messageDataList]...');
         if (messageListDivRef?.current) {
             messageListDivRef.current.scrollTop = 9999;
         }
     }, [messageDataArray]);
+
+    const lockManager = function () {
+        const _lockQueue: Array<any> = [];
+        let _isLocked = false;
+
+        const lockAsync = async function () {
+            return new Promise((resolve: any) => {
+                if (!_isLocked) {
+                    _isLocked = true;
+                    resolve();
+                } else {
+                    _lockQueue.push(resolve);
+                }
+            });
+        };
+
+        const release = function () {
+            if (_lockQueue.length > 0) {
+                const resolve = _lockQueue.shift();
+                resolve();
+            } else {
+                _isLocked = false;
+            }
+        };
+
+        return {
+            executeAsync: async function (executor: any) {
+                await lockAsync();
+                try {
+                    return await executor();
+                } finally {
+                    release();
+                }
+            }
+        };
+    };
+
+    const publicApiAuth = function () {
+        const lock1 = lockManager();
+        const lock2 = lockManager();
+        const publicApi = 'https://localhost:7087@chrome-ext@3E62DEC9-5C5E-4A50-892B-B33062389FAE';
+        const clientId = publicApi.split('@')[1];
+        const clientSecret = publicApi.split('@')[2];
+        let baseUrl = publicApi.split('@')[0];
+        baseUrl = baseUrl.replace(/\/+$/, '');
+        let _auth = {
+            get token() { return JSON.parse(localStorage.getItem('popshe-api-auth-token') || '{}'); },
+            set token(val: any) {
+                if (val) {
+                    val.concurrencyStamp = uuidv4();
+                    localStorage.setItem('popshe-api-auth-token', JSON.stringify(val));
+                } else {
+                    localStorage.removeItem('popshe-api-auth-token');
+                }
+            },
+
+            get message() { return localStorage.getItem('popshe-api-auth-message'); },
+            set message(val) { localStorage.setItem('popshe-api-auth-message', val ?? '') },
+
+            get baseUrl() { return baseUrl },
+
+            clear: function () {
+                this.token = null;
+                this.message = null;
+            },
+            requestTokenAsync: async function () {
+                let currentToken = this.token;
+                let currentStamp = currentToken?.concurrencyStamp
+                return await lock1.executeAsync(async () => {
+                    try {
+                        let _currentToken = this.token;
+                        let _currentStamp = _currentToken?.concurrencyStamp
+                        if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                            return true;
+                        }
+                        console.log("Request token...");
+                        this.clear();
+                        const rs = await fetch(`${baseUrl}/api/auth/invoke`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                grant_type: 'client_credentials',
+                                client_id: clientId,
+                                client_secret: clientSecret
+                            })
+                        });
+                        const json = await rs.json();
+                        if (json.success) {
+                            json.expires_at = new Date(new Date().getTime() + json.expires_in * 1000);
+                            this.token = json;
+                            console.log("Request token done.");
+                            return true;
+                        }
+                        this.message = json.message;
+                    } catch (e: any) {
+                        this.message = (typeof e) === typeof '' ? e as string : JSON.stringify(e);
+                    }
+                    console.error("Request token fail", this.message);
+                    return false;
+                });
+            },
+
+            refreshTokenAsync: async function () {
+                let currentToken = this.token;
+                let currentStamp = currentToken?.concurrencyStamp
+                return await lock1.executeAsync(async () => {
+                    try {
+                        let _currentToken = this.token;
+                        let _currentStamp = _currentToken?.concurrencyStamp
+                        if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                            return true;
+                        }
+                        console.log("Refresh token...");
+                        const refresh_token = this.token.refresh_token;
+                        const access_token = this.token.access_token;
+                        this.clear();
+                        const rs = await fetch(`${baseUrl}/api/auth/refresh`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                access_token: access_token,
+                                refresh_token: refresh_token
+                            })
+                        });
+                        const json = await rs.json();
+                        if (json.success) {
+                            json.expires_at = new Date(new Date().getTime() + json.expires_in * 1000);
+                            this.token = json;
+                            console.log("Refresh token done.");
+                            return true;
+                        }
+                        this.message = json.message;
+                    } catch (e: any) {
+                        this.message = (typeof e) === typeof '' ? e as string : JSON.stringify(e);
+                    }
+                    console.warn("Refresh token fail", this.message)
+                    return false;
+                });
+            },
+
+            refreshOrRequestTokenAsync: async function () {
+                let currentToken = this.token;
+                let currentStamp = currentToken?.concurrencyStamp
+                return lock2.executeAsync(async () => {
+                    let _currentToken = this.token;
+                    let _currentStamp = _currentToken?.concurrencyStamp
+                    if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                        return true;
+                    }
+                    if (this.token?.refresh_token && await this.refreshTokenAsync()) {
+                        return true;
+                    }
+                    return await this.requestTokenAsync();
+                });
+            },
+
+            sendRequestAsync: async function (resource: string, requestBuilder: (request: any) => void, tryCount: number): Promise<Response> {
+                const request: any = {
+                    headers: {}
+                };
+                requestBuilder(request);
+                if ((!this.token?.expires_at || (new Date().getTime() - new Date(this.token.expires_at as number).getTime()) > -30000) && !await this.refreshOrRequestTokenAsync()) {
+                    throw new Error(`sendRequestAsync fail: ${baseUrl}/${resource}`);
+                }
+                request.headers['Authorization'] = `${this.token.token_type} ${this.token.access_token}`
+                const rs = await fetch(`${baseUrl}/${resource.replace(/^\/+/, '')}`, request);
+                if (rs.status === 401 && tryCount > 0) {
+                    var token = JSON.parse(JSON.stringify(this.token));
+                    token.expires_at = new Date();
+                    this.token = token;
+                    return await this.sendRequestAsync(resource, requestBuilder, tryCount - 1);
+                }
+                return rs;
+            }
+        }
+        return _auth;
+    }();
+    const durationAsync = async function (file: File) {
+        if (!file.type.startsWith('audio') && !file.type.startsWith('video')) {
+            throw new Error(`Media type invalid: ${file.type}`);
+        }
+        return await new Promise((rs, rj) => {
+            const media = document.createElement(file.type.startsWith('audio') ? 'audio' : 'video');
+            let done = false;
+            setTimeout(function () {
+                if (!done) {
+                    URL.revokeObjectURL(media.src);
+                    done = true;
+                    rj('timeout');
+                }
+            }, 15000);
+            media.addEventListener('loadedmetadata', async function () {
+                if (!done) {
+                    var duration = media.duration * 1000;
+                    URL.revokeObjectURL(media.src);
+                    done = true;
+                    rs(duration);
+                }
+            });
+            media.src = URL.createObjectURL(file);
+        });
+    }
+    const thumbnailAsync = async function (file: File) {
+        if (!file.type.startsWith('video') && !file.type.startsWith('image')) {
+            throw new Error(`Media type invalid: ${file.type}`);
+        }
+        return await new Promise((rs, rj) => {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const media = document.createElement(file.type.startsWith('video') ? 'video' : 'img');
+            if (file.type.startsWith('video')) {
+                (media as HTMLVideoElement).autoplay = true;
+                (media as HTMLVideoElement).muted = true;
+            }
+            let done = false;
+            canvas.style.display = 'none';
+            media.style.display = 'none';
+            document.body.appendChild(canvas);
+            document.body.appendChild(media);
+            setTimeout(function () {
+                if (!done) {
+                    URL.revokeObjectURL(media.src);
+                    media.remove();
+                    canvas.remove();
+                    done = true;
+                    rj('timeout');
+                }
+            }, 15000);
+            media.addEventListener(file.type.startsWith('video') ? 'loadeddata' : 'load', async function () {
+                if (!done) {
+                    let w = media.width;
+                    let h = media.height;
+                    if (file.type.startsWith('video')) {
+                        w = (media as HTMLVideoElement).videoWidth;
+                        h = (media as HTMLVideoElement).videoHeight;
+                    }
+                    const rt = w / 450;
+                    w = 450;
+                    h = h / rt;
+                    canvas.width = w;
+                    canvas.height = h;
+                    context?.drawImage(media, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(media.src);
+                    media.remove();
+                    canvas.toBlob(function (blob) {
+                        canvas.remove();
+                        done = true;
+                        rs(blob);
+                    }, 'image/jpeg');
+                }
+            });
+            media.src = URL.createObjectURL(file);
+            if (file.type.startsWith('video')) {
+                (media as HTMLVideoElement).load();
+            }
+        });
+    }
+    const blob2Base64Async = async function (blob: Blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                resolve(base64String);
+            };
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(blob);
+        });
+    }
 
     function messageInputKeyDown(e: any) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -196,25 +469,41 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
 
+                let start = performance.now();
+
                 mediaRecorder.ondataavailable = (event: any) => {
                     audioChunks.push(event.data);
                 };
 
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const messageData = {
-                        chater: {
-                            name: currentUserInfo.user.fullName,
-                            avatar: currentUserInfo.user.publicImageUrl,
-                            time: new Date().getTime()
-                        },
-                        content: `Voice message:`,
-                        type: 'sent',
-                        mediaType: 'audio',
-                        mediaUrl: audioUrl
+                mediaRecorder.onstop = async () => {
+                    if (start === -1) {
+                        return;
                     }
-                    setMessageDataArray(arr => [...arr, messageData]);
+                    const duration = performance.now() - start;
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioFileName = `${uuidv4().replaceAll('-', '')}.wav`;
+                    const formData = new FormData();
+                    const upload = await cxoneDigitalContact.upload({
+                        content: (await blob2Base64Async(audioBlob) as string).split(',')[1],
+                        mimeType: audioBlob.type
+                    }, uuidv4());
+                    formData.append('url', upload.url);
+                    const upload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                        request.method = 'POST';
+                        request.body = formData;
+                        request.headers['FileName'] = encodeURIComponent(audioFileName);
+                        request.headers['ContentType'] = audioBlob.type;
+                        request.headers['ContentLength'] = audioBlob.size;
+                        request.headers['Duration'] = duration;
+                    }, 1);
+                    const upload2Json = await upload2.json();
+                    console.log('Voice record', upload2Json);
+                    const text = `audio:::api/file/download/${upload2Json.id}`;
+                    await cxoneDigitalContact.reply({
+                        messageContent: { type: 'TEXT', payload: { text: text } },
+                        recipients: [],
+                        thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform }
+                    }, currentCaseData.channelId, uuidv4())
                 };
 
                 mediaRecorder.start();

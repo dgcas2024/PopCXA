@@ -69,6 +69,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const regexVideo = new RegExp('^video:::(?<path>.+)$', 's');
     const regexImage = new RegExp('^image:::(?<path>.+)$', 's');
 
+    const regexSticker_Line = new RegExp('^line-sticker:::(?<id>[0-9]+):(?<pid>[0-9]+)$', 's');
+
     const cxoneDigitalContact = new CXoneDigitalContact();
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
@@ -327,6 +329,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 messageData.mediaUrl = `${process.env.REACT_APP__POPSHE_URL?.replace(/\/+$/, '')}/${(regexAudio.exec(messageData.content)?.groups ?? {})['path']}`;
                                 messageData.content = '';
                                 messageData.mediaType = 'audio';
+                            }
+                            if (regexSticker_Line.test(messageData.content)) {
+                                messageData.mediaUrl = `https://stickershop.line-scdn.net/stickershop/v1/sticker/${(regexSticker_Line.exec(messageData.content)?.groups ?? {})['id']}/android/sticker.png`;
+                                messageData.mediaUrl = `<img style="max-width:80px;" src="${messageData.mediaUrl}" alt="IMG"></img>`
+                                messageData.content = '';
+                                messageData.mediaType = 'html';
                             }
                             let media: any = null;
                             let content: any = messageData.content;

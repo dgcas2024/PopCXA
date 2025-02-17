@@ -434,8 +434,8 @@ const App = () => {
     return (
         <div ref={appDivRef} className={`app ${sidebarCollapse}`}>
             <div ref={caseListDivRef} className="case-list sidebar-collapse">
-                <span id="sidebar-collapse-close" className="sidebar-collapse-btn" onClick={closeSidebar}>&lt;&lt;</span>
-                <span id="sidebar-collapse-open" className="sidebar-collapse-btn" onClick={openSidebar}>&gt;&gt;</span>
+                <span id="sidebar-collapse-close" className="sidebar-collapse-btn" onClick={closeSidebar}><i className="fas fa-times" style={{ fontSize: '16px', color: 'rgb(102, 102, 102)'}}></i></span>
+                <span id="sidebar-collapse-open" className="sidebar-collapse-btn" onClick={openSidebar}><i className="fas fa-bars" style={{ fontSize: '16px', color: 'rgb(102, 102, 102)' }}></i></span>
                 <div className="agent-profile">
                     <div className="profile-info">
                         <img src={currentUserInfo?.user?.publicImageUrl ?? defaultUserAvatar} alt="Agent" className="avatar" />

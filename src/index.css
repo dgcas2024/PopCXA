@@ -266,8 +266,7 @@ button, select {
 .sidebar-collapse-btn {
     position: absolute;
     font-family: monospace;
-    background: #0012ff;
-    padding: 1px 4px;
+    padding: 5px 10px;
     right: 3px;
     color: #fff;
     font-weight: bold;
@@ -281,7 +280,8 @@ button, select {
 }
 
 .app:not(.sidebar-collapse-open) .sidebar-collapse > #sidebar-collapse-open {
-    top: calc(50% - 75px);
+    height: 100%;
+    width: 100%;
 }
 
 .app:not(.sidebar-collapse-open) .sidebar-collapse {

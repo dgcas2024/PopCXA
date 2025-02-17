@@ -350,7 +350,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                         media = <div className="media-content"><audio controls={true}><source src={messageData.mediaUrl} />Not support audio message</audio></div>
                                         break;
                                     case 'html':
-                                        media = <div dangerouslySetInnerHTML={{ __html: messageData.mediaUrl }}></div>
+                                        media = <div className="media-content" dangerouslySetInnerHTML={{ __html: messageData.mediaUrl }}></div>
                                         content = '';
                                         break;
                                     default:

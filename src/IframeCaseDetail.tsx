@@ -177,7 +177,7 @@ const IframeCaseDetail = () => {
     function handleSetMessageData(messages: CXoneMessageArray) {
         messages.forEach(m => {
             if (m.direction === 'inbound') {
-                const messageData = {
+                const messageData: ChatMessage = {
                     chater: {
                         name: m.authorEndUserIdentity.fullName,
                         avatar: m.authorEndUserIdentity.image,
@@ -188,13 +188,20 @@ const IframeCaseDetail = () => {
                     mediaType: null,
                     mediaUrl: null
                 }
+                if (m.attachments?.length > 0) {
+                    messageData.mediaType = 'html';
+                    messageData.mediaUrl = m.messageContent.text ? `<div>${m.messageContent.text}</div>` : '';
+                    m.attachments.forEach(x => {
+                        messageData.mediaUrl += `<a href="${x.url}">${x.fileName || x.friendlyName}</a>`
+                    });
+                }
                 setMessageDataArray(arr => [...arr, messageData]);
             } else {
                 let avatar = defaultUserAvatar;
                 if (m.authorUser.id === currentUserInfoRef.current?.user.id) {
                     avatar = currentUserInfoRef.current.user.publicImageUrl;
                 }
-                const messageData = {
+                const messageData: ChatMessage = {
                     chater: {
                         name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
                         avatar: avatar,
@@ -204,6 +211,13 @@ const IframeCaseDetail = () => {
                     type: 'sent',
                     mediaType: null,
                     mediaUrl: null
+                }
+                if (m.attachments?.length > 0) {
+                    messageData.mediaType = 'html';
+                    messageData.mediaUrl = m.messageContent.text ? `<div>${m.messageContent.text}</div>` : '';
+                    m.attachments.forEach(x => {
+                        messageData.mediaUrl += `<a href="${x.url}">${x.fileName || x.friendlyName}</a>`
+                    });
                 }
                 setMessageDataArray(arr => [...arr, messageData]);
             }

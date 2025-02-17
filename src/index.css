@@ -189,7 +189,7 @@ button, select {
 }
 
 .media-content {
-    max-width: 300px;
+    max-width: 750px;
     margin-top: 5px;
 }
 
@@ -197,10 +197,13 @@ button, select {
 .media-content video {
     max-width: 100%;
     border-radius: 5px;
+    min-width: 100px;
 }
 
 .media-content audio {
-    width: 100%;
+    width: 450px;
+    max-width: 100%;
+    min-width: 100px;
 }
 
 /* Input Section */

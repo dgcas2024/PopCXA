@@ -63,6 +63,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     onClose,
     setMessageDataArray
 }) => {
+    const regexTranslate = new RegExp('^translate:::(?<content>.+):::translate$', 's');
+    const regexHtml = new RegExp('^html:::(?<content>.+):::html$', 's');
+    const regexAudio = new RegExp('^audio:::(?<path>.+)$', 's');
+    const regexVideo = new RegExp('^video:::(?<path>.+)$', 's');
+    const regexImage = new RegExp('^image:::(?<path>.+)$', 's');
+
     const cxoneDigitalContact = new CXoneDigitalContact();
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
@@ -91,7 +97,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
     }
 
-    function handleFileSelect(event: any) {
+    async function handleFileSelect(event: any) {
         if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
@@ -112,6 +118,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             setMessageDataArray(arr => [...arr, messageData]);
         }
         event.target.value = '';
+        //await cxoneDigitalContact.reply({
+        //    messageContent: { type: 'TEXT', payload: { text: message } },
+        //    recipients: [],
+        //    thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform }
+        //}, currentCaseData.channelId, uuidv4())
+        //cxoneDigitalContact.upload({
+        //    content: '',
+        //    mimeType: '',
+        //}, '')
     }
 
     function handleImageSelect(event: any) {
@@ -293,18 +308,42 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         )}
                     </div>
                     <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
-                        {messageDataArray.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
+                        {messageDataArray.filter(messageData => (messageData.content ?? '') !== '' || true).map((messageData, index) => {
+                            if (regexHtml.test(messageData.content)) {
+                                messageData.mediaUrl = (regexHtml.exec(messageData.content)?.groups ?? {})['content'];
+                                messageData.mediaType = 'html';
+                            }
+                            if (regexImage.test(messageData.content)) {
+                                messageData.mediaUrl = `${process.env.REACT_APP__POPSHE_URL?.replace(/\/+$/, '')}/${(regexImage.exec(messageData.content)?.groups ?? {})['path']}`;
+                                messageData.content = '';
+                                messageData.mediaType = 'image';
+                            }
+                            if (regexVideo.test(messageData.content)) {
+                                messageData.mediaUrl = `${process.env.REACT_APP__POPSHE_URL?.replace(/\/+$/, '')}/${(regexVideo.exec(messageData.content)?.groups ?? {})['path']}`;
+                                messageData.content = '';
+                                messageData.mediaType = 'video';
+                            }
+                            if (regexAudio.test(messageData.content)) {
+                                messageData.mediaUrl = `${process.env.REACT_APP__POPSHE_URL?.replace(/\/+$/, '')}/${(regexAudio.exec(messageData.content)?.groups ?? {})['path']}`;
+                                messageData.content = '';
+                                messageData.mediaType = 'audio';
+                            }
                             let media: any = null;
+                            let content: any = messageData.content;
                             if (messageData.mediaType && messageData.mediaUrl) {
                                 switch (messageData.mediaType) {
                                     case 'image':
-                                        media = <div className="media-content"><img src={messageData.mediaUrl} alt=""></img></div>;
+                                        media = <div className="media-content"><img src={messageData.mediaUrl} alt="IMG"></img></div>;
                                         break;
                                     case 'video':
-                                        media = <div className="media-content"><video controls={true} src={messageData.mediaUrl}></video></div>
+                                        media = <div className="media-content"><video controls={true}><source src={messageData.mediaUrl} />Not support video message</video></div>
                                         break;
                                     case 'audio':
-                                        media = <div className="media-content"><audio controls={true} src={messageData.mediaUrl}></audio></div>
+                                        media = <div className="media-content"><audio controls={true}><source src={messageData.mediaUrl} />Not support audio message</audio></div>
+                                        break;
+                                    case 'html':
+                                        media = <div dangerouslySetInnerHTML={{ __html: messageData.mediaUrl }}></div>
+                                        content = '';
                                         break;
                                     default:
                                         break;
@@ -317,7 +356,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                             <img src={messageData.chater.avatar} alt="" className="avatar"></img>
                                         </div>
                                         <div className="message-content">
-                                            {messageData.content}
+                                            {content}
                                             {media}
                                             <div className="message-name-time">
                                                 <span>{messageData.chater.name}</span> • <span className="time-auto-update" data-time={messageData.chater.time}>{formatDateTime(messageData.chater.time)}</span>

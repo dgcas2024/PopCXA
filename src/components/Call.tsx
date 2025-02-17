@@ -44,7 +44,7 @@ import React from "react";
 interface Agent {
   id: string;
   name: string;
-  status: string;
+  state: string;
   avatar?: string;
 }
 
@@ -64,40 +64,25 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
 
     const loadAvailableAgents = async () => {
         try {
-            const response: any = [{
-                id: '1',
-                name: 'xxxx',
-                state: 'Available'
-            }];
-            const onlineAgents = response.filter((agent: any) => 
-                agent.state === 'Available' || agent.state === 'Working'
-            );
-            const formattedAgents = onlineAgents.map((agent: any) => ({
-                id: agent.agentId,
-                name: agent.name || 'Unknown Agent',
-                status: agent.state,
+            const agents: [Agent] = [{
+                id: '43890187',
+                name: 'Agent2',
+                state: 'Available',
                 avatar: 'https://app-eu1.brandembassy.com/img/user-default.png'
-            }));
-            setAgents(formattedAgents);
+            }];
+            setAgents(agents);
         } catch (error) {
             console.error('Error loading agents:', error);
         }
     };
 
     const handleTransfer = async () => {
-        if (!selectedAgent || !currentVoiceContactData) {
+        if (!selectedAgent || !_currentCallContactData) {
             alert('Please select an agent to transfer to');
             return;
         }
-
-        try {
-            await CXoneAcdClient.instance.contactManager.voiceService.transferContact();
-            setShowTransferModal(false);
-            setSelectedAgent(null);
-        } catch (error) {
-            console.error('Error transferring call:', error);
-            alert('Failed to transfer call. Please try again.');
-        }
+        await CXoneAcdClient.instance.contactManager.voiceService.dialAgent(selectedAgent.id, _currentCallContactData.contactId);
+        setShowTransferModal(false);
     };
 
     const handleColdTransfer = async () => {
@@ -170,7 +155,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                             <img src={agent.avatar} alt={agent.name} className="transfer-agent-avatar"/>
                             <div className="transfer-agent-info">
                                 <div className="transfer-agent-name">{agent.name}</div>
-                                <div className="transfer-agent-status">{agent.status}</div>
+                                <div className="transfer-agent-status">{agent.state}</div>
                             </div>
                         </div>
                     ))}
@@ -199,7 +184,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
             {
                 _currentCallContactData.ani === "REAGENT" && _currentCallContactData.status === "Active" && (
                     <div className="call-actions">
-                        <button className="action-button transfer" onClick={handleColdTransfer}>
+                        <button disabled={false} className="action-button transfer" onClick={handleColdTransfer}>
                             <i className="fas fa-exchange-alt" style={{ color: '#f44336' }}></i>
                         </button>
                         <button className="action-button hangup" onClick={handleHangup}>
@@ -226,7 +211,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                             </button>
                         </div>
                         <div className="call-controls">
-                            <button className="action-button transfer" onClick={() => setShowTransferModal(true)}>
+                            <button disabled={_currentVoiceContactData.status !== 'Holding'} className="action-button transfer" onClick={() => setShowTransferModal(true)}>
                                 <i className="fas fa-exchange-alt"></i>
                             </button>
                             <button disabled={_currentVoiceContactData.status === 'Holding' || _currentVoiceContactData.agentMuted || _currentCallContactData.status === "Masking"} className="action-button hangup" onClick={handleHangup}>
@@ -245,9 +230,9 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                         <button className="action-button reject" onClick={handleReject}>
                             <i className="fas fa-phone-slash"></i>
                         </button>
-                        <button className="action-button transfer" onClick={() => setShowTransferModal(true)}>
-                            <i className="fas fa-exchange-alt"></i>
-                        </button>
+                        {/*<button disabled={true} className="action-button transfer" onClick={() => setShowTransferModal(true)}>*/}
+                        {/*    <i className="fas fa-exchange-alt"></i>*/}
+                        {/*</button>*/}
                     </div>
                 )
             }

@@ -4,7 +4,6 @@ import { CallContactEvent, CXoneCase, } from "@nice-devone/common-sdk";
 import { CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import Call from './Call';
 import { CXoneDigitalContact } from '@nice-devone/digital-sdk';
-import { string } from 'yup/lib/locale';
 
 function formatDateTime(date: number | Date) {
     let _date = 0;
@@ -80,8 +79,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
+    //const imageInputRef = useRef<HTMLInputElement>(null);
+    //const videoInputRef = useRef<HTMLInputElement>(null);
     const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
     const messageListDivRef = useRef<HTMLDivElement>(null);
@@ -164,7 +163,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     try {
                         let _currentToken = this.token;
                         let _currentStamp = _currentToken?.concurrencyStamp
-                        if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                        if (_currentToken?.access_token != null && _currentStamp !== currentStamp) {
                             return true;
                         }
                         console.log("Request token...");
@@ -203,7 +202,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     try {
                         let _currentToken = this.token;
                         let _currentStamp = _currentToken?.concurrencyStamp
-                        if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                        if (_currentToken?.access_token != null && _currentStamp !== currentStamp) {
                             return true;
                         }
                         console.log("Refresh token...");
@@ -242,7 +241,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 return lock2.executeAsync(async () => {
                     let _currentToken = this.token;
                     let _currentStamp = _currentToken?.concurrencyStamp
-                    if (_currentToken?.access_token != null && _currentStamp != currentStamp) {
+                    if (_currentToken?.access_token != null && _currentStamp !== currentStamp) {
                         return true;
                     }
                     if (this.token?.refresh_token && await this.refreshTokenAsync()) {
@@ -273,7 +272,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
         return _auth;
     }();
-    const durationAsync = async function (file: File) {
+    const durationAsync = async function (file: File): Promise<number> {
         if (!file.type.startsWith('audio') && !file.type.startsWith('video')) {
             throw new Error(`Media type invalid: ${file.type}`);
         }
@@ -298,7 +297,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             media.src = URL.createObjectURL(file);
         });
     }
-    const thumbnailAsync = async function (file: File) {
+    const thumbnailAsync = async function (file: File): Promise<Blob>{
         if (!file.type.startsWith('video') && !file.type.startsWith('image')) {
             throw new Error(`Media type invalid: ${file.type}`);
         }
@@ -343,7 +342,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     canvas.toBlob(function (blob) {
                         canvas.remove();
                         done = true;
-                        rs(blob);
+                        blob && rs(blob);
                     }, 'image/jpeg');
                 }
             });
@@ -353,12 +352,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             }
         });
     }
-    const blob2Base64Async = async function (blob: Blob) {
+    const blob2Base64Async = async function (blob: Blob): Promise<string> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const base64String = reader.result;
-                resolve(base64String);
+                resolve(base64String as string);
             };
             reader.onerror = error => reject(error);
             reader.readAsDataURL(blob);
@@ -372,91 +371,129 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
     }
 
-    async function handleFileSelect(event: any) {
+    async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
         if (currentCaseData == null || currentUserInfo == null) {
             alert('error');
             return;
         }
         const files = event.target.files;
-        for (const file of files) {
-            const messageData: ChatMessage = {
-                chater: {
-                    name: currentUserInfo.user.fullName,
-                    avatar: currentUserInfo.user.publicImageUrl,
-                    time: new Date().getTime()
-                },
-                content: `File attached: ${file.name}`,
-                type: 'sent',
-                mediaType: null,
-                mediaUrl: null
+        for (let i = 0; i < (files?.length ?? 0); i++) {
+            const file = files?.item(i);
+            if (file) {
+                let duration: number | null = null;
+                let thumbnailId: string | null = null;
+                if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+                    duration = await durationAsync(file);
+                }
+                if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                    const thumbnailBlob = await thumbnailAsync(file);
+                    const thumbnaiFileName = `${uuidv4().replaceAll('-', '')}.jpeg`;
+                    const formDataBlob = new FormData();
+                    const uploadBlob = await cxoneDigitalContact.upload({
+                        content: (await blob2Base64Async(thumbnailBlob)).split(',')[1],
+                        mimeType: thumbnailBlob.type
+                    }, uuidv4());
+                    formDataBlob.append('url', uploadBlob.url);
+                    const uploadBlob2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                        request.method = 'POST';
+                        request.body = formDataBlob;
+                        request.headers['FileName'] = encodeURIComponent(thumbnaiFileName);
+                        request.headers['ContentType'] = thumbnailBlob.type;
+                        request.headers['ContentLength'] = thumbnailBlob.size;
+                    }, 1);
+                    const uploadBlob2Json = await uploadBlob2.json();
+                    thumbnailId = uploadBlob2Json.id;
+                }
+                const formData = new FormData();
+                const upload = await cxoneDigitalContact.upload({
+                    content: (await blob2Base64Async(file)).split(',')[1],
+                    mimeType: file.type
+                }, uuidv4());
+                formData.append('url', upload.url);
+                const upload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                    request.method = 'POST';
+                    request.body = formData;
+                    request.headers['FileName'] = encodeURIComponent(file.name);
+                    request.headers['ContentType'] = file.type;
+                    request.headers['ContentLength'] = file.size;
+                    if (duration != null) {
+                        request.headers['Duration'] = duration;
+                    }
+                    if (thumbnailId != null) {
+                        request.headers['ThumbnailId'] = thumbnailId;
+                    }
+                }, 1);
+                const upload2Json = await upload2.json();
+                console.log('File upload', upload2Json);
+                let text = `File download`;
+                let attachments = [];
+                if ((upload2Json.contentType ?? '').startsWith('image/')) {
+                    text = `image:::api/file/download/${upload2Json.id}`;
+                } else if ((upload2Json.contentType ?? '').startsWith('audio/')) {
+                    text = `audio:::api/file/download/${upload2Json.id}`;
+                } else if ((upload2Json.contentType ?? '').startsWith('video/')) {
+                    text = `video:::api/file/download/${upload2Json.id}`;
+                }
+                else {
+                    attachments.push({
+                        id: upload2Json.id,
+                        friendlyName: upload2Json.fileName,
+                        url: `${publicApiAuth.baseUrl}/api/file/download/${upload2Json.id}`
+                    });
+                }
+                await cxoneDigitalContact.reply({
+                    messageContent: { type: 'TEXT', payload: { text: text } },
+                    recipients: [],
+                    thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform },
+                    attachments: attachments
+                }, currentCaseData.channelId, uuidv4())
             }
-            setMessageDataArray(arr => [...arr, messageData]);
         }
         event.target.value = '';
-        //await cxoneDigitalContact.reply({
-        //    messageContent: { type: 'TEXT', payload: { text: message } },
-        //    recipients: [],
-        //    thread: { idOnExternalPlatform: currentCaseData.threadIdOnExternalPlatform }
-        //}, currentCaseData.channelId, uuidv4())
-        //cxoneDigitalContact.upload({
-        //    content: '',
-        //    mimeType: '',
-        //}, '')
     }
 
-    function handleImageSelect(event: any) {
-        if (currentCaseData == null || currentUserInfo == null) {
-            alert('error');
-            return;
-        }
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e: any) {
-                const messageData = {
-                    chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
-                        time: new Date().getTime()
-                    },
-                    content: `Image sent:`,
-                    type: 'sent',
-                    mediaType: 'image',
-                    mediaUrl: e.target.result
-                }
-                setMessageDataArray(arr => [...arr, messageData]);
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
+    //function handleImageSelect(event: any) {
+    //    if (currentCaseData == null || currentUserInfo == null) {
+    //        alert('error');
+    //        return;
+    //    }
+    //    const file = event.target.files[0];
+    //    if (file) {
+    //        const reader = new FileReader();
+    //        reader.onload = function (e: any) {
+    //            const messageData = {
+    //                chater: {
+    //                    name: currentUserInfo.user.fullName,
+    //                    avatar: currentUserInfo.user.publicImageUrl,
+    //                    time: new Date().getTime()
+    //                },
+    //                content: `Image sent:`,
+    //                type: 'sent',
+    //                mediaType: 'image',
+    //                mediaUrl: e.target.result
+    //            }
+    //            setMessageDataArray(arr => [...arr, messageData]);
+    //            event.target.value = '';
+    //        };
+    //        reader.readAsDataURL(file);
+    //    }
+    //}
 
-    function handleVideoSelect(event: any) {
-        if (currentCaseData == null || currentUserInfo == null) {
-            alert('error');
-            return;
-        }
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e: any) {
-                const messageData = {
-                    chater: {
-                        name: currentUserInfo.user.fullName,
-                        avatar: currentUserInfo.user.publicImageUrl,
-                        time: new Date().getTime()
-                    },
-                    content: `Video sent:`,
-                    type: 'sent',
-                    mediaType: 'video',
-                    mediaUrl: e.target.result
-                }
-                setMessageDataArray(arr => [...arr, messageData]);
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
+    //function handleVideoSelect(event: any) {
+    //    if (currentCaseData == null || currentUserInfo == null) {
+    //        alert('error');
+    //        return;
+    //    }
+    //    const file = event.target.files[0];
+    //    if (file) {
+    //        const reader = new FileReader();
+    //        reader.onload = function (e: any) {
+
+    //            event.target.value = '';
+    //        };
+    //        reader.readAsDataURL(file);
+    //    }
+    //}
 
     async function toggleRecording() {
         if (currentCaseData == null || currentUserInfo == null) {
@@ -484,7 +521,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     const audioFileName = `${uuidv4().replaceAll('-', '')}.wav`;
                     const formData = new FormData();
                     const upload = await cxoneDigitalContact.upload({
-                        content: (await blob2Base64Async(audioBlob) as string).split(',')[1],
+                        content: (await blob2Base64Async(audioBlob)).split(',')[1],
                         mimeType: audioBlob.type
                     }, uuidv4());
                     formData.append('url', upload.url);
@@ -667,15 +704,20 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
                         <div className="attachment-options">
                             <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
-                            <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
+                            <button onClick={() => {
+                                if (fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                }
+                                fileInputRef.current?.click();
+                            }} className="attachment-btn">📎 File</button>
 
                             <button onClick={toggleRecording} className="attachment-btn" id="recordButton">{recordButtonText}</button>
 
-                            <input onChange={handleImageSelect} type="file" id="imageInput" ref={imageInputRef} accept="image/*" style={{ display: 'none' }} />
-                            <button onClick={() => imageInputRef?.current?.click()} className="attachment-btn">🖼️ Image</button>
+                            {/*<input onChange={handleImageSelect} type="file" id="imageInput" ref={imageInputRef} accept="image/*" style={{ display: 'none' }} />*/}
+                            {/*<button onClick={() => imageInputRef?.current?.click()} className="attachment-btn">🖼️ Image</button>*/}
 
-                            <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
-                            <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
+                            {/*<input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />*/}
+                            {/*<button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>*/}
 
                             <select value={currentCaseData?.status} onChange={updateCaseStatus} style={{
                                 borderRadius: '5px', fontSize: '14px', outline: 'none',

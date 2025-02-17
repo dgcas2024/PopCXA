@@ -63,7 +63,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     onClose,
     setMessageDataArray
 }) => {
-    const regexTranslate = new RegExp('^translate:::(?<content>.+):::translate$', 's');
+    //const regexTranslate = new RegExp('^translate:::(?<content>.+):::translate$', 's');
     const regexHtml = new RegExp('^html:::(?<content>.+):::html$', 's');
     const regexAudio = new RegExp('^audio:::(?<path>.+)$', 's');
     const regexVideo = new RegExp('^video:::(?<path>.+)$', 's');

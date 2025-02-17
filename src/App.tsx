@@ -1,21 +1,14 @@
-﻿/* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import {
-    StorageKeys,
     ACDSessionManager,
-    DateTimeUtilService,
-    LocalStorageHelper
 } from "@nice-devone/core-sdk";
 import {
-    AgentSessionStatus,
     AuthToken,
-    EndSessionRequest,
     UnavailableCode,
     AgentStateEvent,
     SortingType,
-    UserInfo,
     CallContactEvent,
     CXoneCase,
     CXoneMessageArray,
@@ -26,8 +19,6 @@ import {
     AuthWithCodeReq,
     CXoneAuth,
     AuthStatus,
-    AuthWithTokenReq,
-    CXoneUser
 } from "@nice-devone/auth-sdk";
 import {
     CXoneDigitalClient,
@@ -35,16 +26,12 @@ import {
     DigitalService,
 } from "@nice-devone/digital-sdk";
 import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
-import { CXoneClient, ContactService, VoiceControlService, AgentLegService } from "@nice-devone/agent-sdk";
+import { } from "@nice-devone/agent-sdk";
 import React from "react";
 
 import './components/Call';
-import Call from "./components/Call";
 import SessionConnectionSelect from "./components/SessionConnectionSelect";
-
-//let _currentCaseData: any = null;
-//let _currentCallContactData: CallContactEvent | null = null;
-//let _currentVoiceContactData: CXoneVoiceContact | null = null;
+import ChatContainer, { ChatMessage } from './components/ChatContainer';
 
 const authSetting: AuthSettings = {
     cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
@@ -81,10 +68,8 @@ const App = () => {
     const currentCaseDataRef = useRef(currentCaseData);
 
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
-    
-    const [messageDataArray, setMessageDataArray] = useState<Array<{ chater: { avatar: string, name: string, time: number }, content: string, type: string, mediaType: string | null, mediaUrl: string | null }>>([]);
 
-    const [recordButtonText, setRecordButtonText] = useState("🎤 Record");
+    const [messageDataArray, setMessageDataArray] = useState<Array<ChatMessage>>([]);
 
 
     useEffect(() => {
@@ -99,12 +84,6 @@ const App = () => {
 
     const appDivRef = useRef<HTMLDivElement>(null);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
-    const messageInputRef = useRef<HTMLTextAreaElement>(null);
-
-    const messageListDivRef = useRef<HTMLDivElement>(null);
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
     const [dialNumber, setDialNumber] = useState('+84328523152');
@@ -224,13 +203,6 @@ const App = () => {
     }
 
     useEffect(() => {
-        console.log('useEffect[messageDataArray]...');
-        if (messageListDivRef?.current) {
-            messageListDivRef.current.scrollTop = 9999;
-        }
-    }, [messageDataArray]);
-
-    useEffect(() => {
         console.log('useEffect[caseDataArray]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
@@ -254,8 +226,8 @@ const App = () => {
 
                     // ACD SDK consumption
                     const acd = async function () {
-                        CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
+                            CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('Join session', join_ss);
                             await setupAcd();
@@ -306,183 +278,6 @@ const App = () => {
     function openSidebar() {
         appDivRef.current?.classList?.add('sidebar-collapse-open');
         localStorage.setItem('sidebar-collapse-open', '1');
-    }
-
-    let isRecording = false;
-    let mediaRecorder: any = null;
-    let audioChunks: any = [];
-
-    function formatDateTime(date: number | Date) {
-        let _date = 0;
-        if (typeof date != 'number') {
-            if (typeof date == typeof '') {
-                date = new Date(date);
-            }
-            _date = date.getTime();
-        } else {
-            _date = date;
-        }
-        const __date = new Date(_date);
-
-        const now = new Date();
-        const diffInMs = now.getTime() - _date;
-        const diffInMinutes = Math.floor(diffInMs / 60000);
-
-        if (diffInMinutes < 60) {
-            return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-        } else if (now.toDateString() === __date.toDateString()) {
-            const fullTime = __date.toTimeString().split(' ')[0];
-            return fullTime.substring(0, fullTime.length - 3);
-        } else {
-            const fullDateTime = `${String(__date.getDate()).padStart(2, '0')}/${String(__date.getMonth() + 1).padStart(2, '0')}/${__date.getFullYear()} ${__date.toTimeString().split(' ')[0]}`;
-            return fullDateTime.substring(0, fullDateTime.length - 3);
-        }
-    }
-
-    function messageInputKeyDown(e: any) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    }
-
-    function handleFileSelect(event: any) {
-        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
-            alert('error');
-            return;
-        }
-        const files = event.target.files;
-        for (const file of files) {
-            const messageData = {
-                chater: {
-                    name: currentUserInfoRef.current.user.fullName,
-                    avatar: currentUserInfoRef.current.user.publicImageUrl,
-                    time: new Date().getTime()
-                },
-                content: `File attached: ${file.name}`,
-                type: 'sent',
-                mediaType: null,
-                mediaUrl: null
-            }
-            setMessageDataArray(arr => [...arr, messageData]);
-        }
-        event.target.value = '';
-    }
-
-    function handleImageSelect(event: any) {
-        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
-            alert('error');
-            return;
-        }
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e: any) {
-                const messageData = {
-                    chater: {
-                        name: currentUserInfoRef.current.user.fullName,
-                        avatar: currentUserInfoRef.current.user.publicImageUrl,
-                        time: new Date().getTime()
-                    },
-                    content: `Image sent:`,
-                    type: 'sent',
-                    mediaType: 'image',
-                    mediaUrl: e.target.result
-                }
-                setMessageDataArray(arr => [...arr, messageData]);
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function handleVideoSelect(event: any) {
-        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
-            alert('error');
-            return;
-        }
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e: any) {
-                const messageData = {
-                    chater: {
-                        name: currentUserInfoRef.current.user.fullName,
-                        avatar: currentUserInfoRef.current.user.publicImageUrl,
-                        time: new Date().getTime()
-                    },
-                    content: `Video sent:`,
-                    type: 'sent',
-                    mediaType: 'video',
-                    mediaUrl: e.target.result
-                }
-                setMessageDataArray(arr => [...arr, messageData]);
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    async function toggleRecording() {
-        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null) {
-            alert('error');
-            return;
-        }
-        if (!isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-
-                mediaRecorder.ondataavailable = (event: any) => {
-                    audioChunks.push(event.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const messageData = {
-                        chater: {
-                            name: currentUserInfo.user.fullName,
-                            avatar: currentUserInfo.user.publicImageUrl,
-                            time: new Date().getTime()
-                        },
-                        content: `Voice message:`,
-                        type: 'sent',
-                        mediaType: 'audio',
-                        mediaUrl: audioUrl
-                    }
-                    setMessageDataArray(arr => [...arr, messageData]);
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                setRecordButtonText("⏹️ Stop");
-            } catch (err) {
-                console.error('Error accessing microphone:', err);
-                alert('Error accessing microphone. Please check permissions.');
-            }
-        } else {
-            mediaRecorder.stop();
-            isRecording = false;
-            setRecordButtonText("🎤 Record");
-        }
-    }
-
-    async function sendMessage() {
-        if (currentCaseDataRef.current == null || currentUserInfoRef.current == null || currentCaseDataRef.current.channelId == null) {
-            alert('error');
-            return;
-        }
-        const message = messageInputRef.current?.value;
-        if (message) {
-            messageInputRef.current.value = '';
-            await cxoneDigitalContact.reply({
-                messageContent: { type: 'TEXT', payload: { text: message } },
-                recipients: [],
-                thread: { idOnExternalPlatform: currentCaseDataRef.current.threadIdOnExternalPlatform }
-            }, currentCaseDataRef.current.channelId, uuidv4())
-        }
     }
 
     function handleSetMessageData(messages: CXoneMessageArray) {
@@ -539,15 +334,6 @@ const App = () => {
             reason: state.reason,
             isACW: false
         });
-    }
-
-    async function updateCaseStatus(event: any) {
-        console.log('updateCaseStatus', event);
-        if (currentCaseDataRef.current != null) {
-            const cxoneDigitalContact = new CXoneDigitalContact();
-            cxoneDigitalContact.caseId = currentCaseDataRef.current.id;
-            await cxoneDigitalContact.changeStatus(event.target.value);
-        }
     }
 
     async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false) {
@@ -761,113 +547,14 @@ const App = () => {
                     </React.Fragment>
                 ))}
             </div>
-            <div className="chat-container">
-                {currentCallContactData != null ? (
-                    <React.Fragment>
-                        <div className="chat-header">
-                            <div className="profile-info">
-                                <img src={defaultUserAvatar} alt="Case" className="avatar" />
-                                <div>
-                                    <div className="profile-info-name">{currentCallContactData.ani}</div>
-                                    <div className="message-time" data-starttime={currentCallContactData.startTime}>00:00:00</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="chat-messages" id="chatMessages">
-                            <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData}></Call>
-                        </div>
-                    </React.Fragment>
-                ) : (
-                    <React.Fragment>
-                        <div className="chat-header">
-                            <div className="profile-info">
-                                <img src={currentCaseData?.authorEndUserIdentity?.image ?? defaultUserAvatar} alt="Case" className="avatar" />
-                                <div>
-                                    <div className="profile-info-name">{currentCaseData?.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
-                                    <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
-                            {messageDataArray.filter(messageData => (messageData.content ?? '') !== '').map((messageData, index) => {
-                                let media: any = null;
-                                if (messageData.mediaType && messageData.mediaUrl) {
-                                    switch (messageData.mediaType) {
-                                        case 'image':
-                                            media = <div className="media-content"><img src={messageData.mediaUrl} alt=""></img></div>;
-                                            break;
-                                        case 'video':
-                                            media = <div className="media-content"><video controls={true} src={messageData.mediaUrl}></video></div>
-                                            break;
-                                        case 'audio':
-                                            media = <div className="media-content"><audio controls={true} src={messageData.mediaUrl}></audio></div>
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                }
-                                return (
-                                    <React.Fragment key={index}>
-                                        <div className={`message ${messageData.type}`}>
-                                            <div className="message-info">
-                                                <img src={messageData.chater.avatar} alt="" className="avatar"></img>
-                                            </div>
-                                            <div className="message-content">
-                                                {messageData.content}
-                                                {media}
-                                                <div className="message-name-time">
-                                                    <span>{messageData.chater.name}</span> • <span className="time-auto-update" data-time={messageData.chater.time}>{formatDateTime(messageData.chater.time)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </React.Fragment>
-                                )
-                            })}
-                        </div>
-                        <div className={`chat-input ${(currentCaseData == null || currentCaseData.status === 'closed' ? 'chat-input-disabled' : '')}`}>
-                            <div className="attachment-options">
-                                <input onChange={handleFileSelect} type="file" id="fileInput" ref={fileInputRef} multiple style={{ display: 'none' }} />
-                                <button onClick={() => fileInputRef?.current?.click()} className="attachment-btn">📎 File</button>
-
-                                <button onClick={toggleRecording} className="attachment-btn" id="recordButton">{recordButtonText}</button>
-
-                                <input onChange={handleImageSelect} type="file" id="imageInput" ref={imageInputRef} accept="image/*" style={{ display: 'none' }} />
-                                <button onClick={() => imageInputRef?.current?.click()} className="attachment-btn">🖼️ Image</button>
-
-                                <input onChange={handleVideoSelect} type="file" id="videoInput" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} />
-                                <button onClick={() => videoInputRef?.current?.click()} className="attachment-btn">🎥 Video</button>
-
-                                <select value={currentCaseData?.status} onChange={updateCaseStatus} style={{
-                                    borderRadius: '5px', fontSize: '14px', outline: 'none',
-                                    padding: '6px 30px 6px 12px',
-                                    border: '1px solid #ccc',
-                                    backgroundColor: '#fff',
-                                    color: '#333',
-                                    cursor: 'pointer',
-                                    appearance: 'none',
-                                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'right 8px center',
-                                    backgroundSize: '16px'
-                                }}>
-                                    {[{ id: 'new', name: 'New' }, { id: 'open', name: 'Open' }, { id: 'pending', name: 'Pending' }, { id: 'resolved', name: 'Resolved' }, { id: 'escalated', name: 'Escalated' }, { id: 'closed', name: 'Closed' }]
-                                        .map((status, index) => {
-                                            return (
-                                                <React.Fragment key={index}>
-                                                    <option disabled={(currentCaseData?.status === 'closed' || (currentCaseData != null && status.id === 'new'))} value={status.id}>{status.name}</option>
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                </select>
-                            </div>
-                            <div className="input-container">
-                                <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
-                                <button className="send-btn" onClick={sendMessage}>Send</button>
-                            </div>
-                        </div>
-                    </React.Fragment>
-                )}
-            </div>
+            <ChatContainer 
+                currentUserInfo={currentUserInfo}
+                currentCallContactData={currentCallContactData}
+                currentVoiceContactData={currentVoiceContactData}
+                currentCaseData={currentCaseData}
+                messageDataArray={messageDataArray}
+                setMessageDataArray={setMessageDataArray}
+            />
         </div>
     );
 };

@@ -1,48 +1,21 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-import { useEffect, useRef, useState, CSSProperties } from "react";
-import { v4 as uuidv4 } from 'uuid';
-import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { useEffect, useState, CSSProperties } from "react";
+import { } from 'uuid';
+import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
-    StorageKeys,
     ACDSessionManager,
-    DateTimeUtilService,
-    LocalStorageHelper
 } from "@nice-devone/core-sdk";
 import {
-    AgentSessionStatus,
-    AuthToken,
-    EndSessionRequest,
-    UnavailableCode,
-    AgentStateEvent,
-    SortingType,
-    UserInfo,
-    CallContactEvent,
-    CXoneCase,
-    CXoneMessageArray
 } from "@nice-devone/common-sdk";
 import {
-    AuthSettings,
-    AuthWithCodeReq,
-    CXoneAuth,
-    AuthStatus,
-    AuthWithTokenReq,
-    CXoneUser
 } from "@nice-devone/auth-sdk";
 import {
-    CXoneDigitalClient,
-    CXoneDigitalContact,
-    DigitalService,
 } from "@nice-devone/digital-sdk";
-import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
-import { CXoneClient, ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
+import { } from "@nice-devone/voice-sdk";
+import { } from "@nice-devone/agent-sdk";
 
 function SessionConnectionSelect({ setupAcd }: any) {
     const [selectedOption, setSelectedOption] = useState('phone');
     const [inputValue, setInputValue] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
 
     const styles = {
         container: {
@@ -84,12 +57,6 @@ function SessionConnectionSelect({ setupAcd }: any) {
         label: {
             fontSize: '14px',
             color: '#666'
-        },
-        rememberMe: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '15px'
         },
         buttonGroup: {
             display: 'flex',
@@ -186,19 +153,8 @@ function SessionConnectionSelect({ setupAcd }: any) {
                 </div>
             )}
 
-            {/*<div style={styles.rememberMe}>*/}
-            {/*    <input*/}
-            {/*        type="checkbox"*/}
-            {/*        id="remember"*/}
-            {/*        checked={rememberMe}*/}
-            {/*        onChange={(e) => setRememberMe(e.target.checked)}*/}
-            {/*    />*/}
-            {/*    <label htmlFor="remember">Remember Me</label>*/}
-            {/*</div>*/}
-
             <div style={styles.buttonGroup}>
                 <button style={styles.connectButton} onClick={Connect}>Connect</button>
-                {/*<button style={styles.closeButton}>Close</button>*/}
             </div>
         </div>
     );

@@ -174,8 +174,8 @@ const IframeCases = () => {
 
                     // ACD SDK consumption
                     const acd = async function () {
-                        CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
+                            CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('[0]. Join session', join_ss);
                             await setupAcd();

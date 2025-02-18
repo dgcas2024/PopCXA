@@ -1,21 +1,15 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import {
-    ACDSessionManager,
 } from "@nice-devone/core-sdk";
 import {
-    AuthToken,
-    SortingType,
     CallContactEvent,
     CXoneCase,
 } from "@nice-devone/common-sdk";
 import {
-    CXoneAuth,
-    AuthStatus,
 } from "@nice-devone/auth-sdk";
 import {
-    CXoneDigitalClient,
-    DigitalService,
+    CXoneDigitalContact
 } from "@nice-devone/digital-sdk";
 import { } from "@nice-devone/voice-sdk";
 import { } from "@nice-devone/agent-sdk";
@@ -25,126 +19,31 @@ import './components/Call';
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
-const delay = (ms: number) => new Promise(rs => {
-    setTimeout(rs, ms);
-})
-
 const IframeCases = () => {
-    const cxoneAuth = CXoneAuth.instance;
-    const digitalService = new DigitalService();
+    const cxoneDigitalContact = new CXoneDigitalContact();
 
-    const [, setSession] = useState<any>();
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const currentUserInfoRef = useRef(currentUserInfo);
 
+    const [agentSession, setAgentSession] = useState<any>();
     const [authState, setAuthState] = useState("");
-    const [, setAuthToken] = useState("");
-
-    const [, setCurrentUserInfo] = useState<any>();
-
-    const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
-    const currentCallContactDataRef = useRef(currentCallContactData);
 
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
     const voiceContactDataArrayRef = useRef(voiceContactDataArray);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
-    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+    const [, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+
+    const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
 
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
-    const currentCaseDataRef = useRef(currentCaseData);
 
     useEffect(() => {
-        currentCallContactDataRef.current = currentCallContactData;
         voiceContactDataArrayRef.current = voiceContactDataArray;
-        currentVoiceContactDataRef.current = currentVoiceContactData;
-        currentCaseDataRef.current = currentCaseData;
-    }, [currentCallContactData, currentCaseData, currentVoiceContactData, voiceContactDataArray])
+        currentUserInfoRef.current = currentUserInfo;
+    }, [voiceContactDataArray, currentUserInfo])
 
     const caseListDivRef = useRef<HTMLDivElement>(null);
-
-    const setupAcd = async () => {
-        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-            console.log("[IframeCases].voiceContactUpdateEvent", voiceContactEvent);
-            if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
-                setCurrentVoiceContactData(voiceContactEvent);
-                if (voiceContactEvent.status === 'Disconnected') {
-                    setCurrentVoiceContactData(null);
-                    localStorage.removeItem('currentVoiceContactData');
-                    window.parent?.postMessage({ hideCaseDetail: true }, '*');
-                }
-            }
-            setVoiceContactDataArray(arr => arr.filter(item => item.contactID !== voiceContactEvent.contactID));
-            if (voiceContactEvent.status !== 'Disconnected') {
-                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
-            }
-        });
-
-        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-            console.log("[IframeCases].callContactEvent", callContactEvent);
-            if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
-                setCurrentCallContactData(callContactEvent);
-                if (callContactEvent.status === 'Disconnected') {
-                    setCurrentCallContactData(null);
-                    localStorage.removeItem('currentCallContactData');
-                    window.parent?.postMessage({ hideCaseDetail: true }, '*');
-                }
-            }
-            setCallContactDataArray(arr => arr.filter(item => item.contactId !== callContactEvent.contactId));
-            if (callContactEvent.status !== 'Disconnected') {
-                setCallContactDataArray(arr => [...arr, callContactEvent]);
-            }
-        });
-
-        const cuser = await digitalService.getDigitalUserDetails() as any;
-        setCurrentUserInfo(cuser);
-        console.log(`[IframeCases].CurrentUser`, cuser);
-
-        const digital = async function () {
-            const refreshCaseArray = async function (_delay: number | null) {
-                if (_delay != null) {
-                    await delay(_delay);
-                }
-                const rs = await digitalService.getDigitalContactSearchResult({
-                    sortingType: SortingType.DESCENDING,
-                    sorting: 'createdAt',
-                    inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
-                    status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
-                }, true, true);
-                console.log('[IframeCases].Case data array', rs);
-                setCaseDataArray([]);
-                (rs.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
-            }
-            // Digital SDK consumption
-            CXoneDigitalClient.instance.initDigitalEngagement();
-            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                console.log("[IframeCases].onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
-            });
-            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                console.log("[IframeCases].onDigitalContactEvent", digitalContactEvent);
-                refreshCaseArray(1000);
-                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
-                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                        setCurrentCaseData(digitalContactEvent.case);
-                        if (digitalContactEvent.case.status === 'closed') {
-                            selectCaseItem(null);
-                            localStorage.removeItem('currentCaseData');
-                            window.parent?.postMessage({ hideCaseDetail: true }, '*');
-                        }
-                    } else {
-                        if (digitalContactEvent.isCaseAssigned) {
-                            // Nothing
-                        } else {
-                            selectCaseItem(null);
-                            localStorage.removeItem('currentCaseData');
-                            window.parent?.postMessage({ hideCaseDetail: true }, '*');
-                        }
-                    }
-                }
-            });
-            await refreshCaseArray(null);
-        }
-        digital();
-    }
 
     useEffect(() => {
         console.log('[IframeCases].useEffect[caseDataArray]...');
@@ -156,72 +55,26 @@ const IframeCases = () => {
     useEffect(() => {
         console.log('[IframeCases].useEffect...');
         window.addEventListener('message', async function (evt) {
+            if (evt.data.dest === 'Iframe2') {
+                switch (evt.data.command) {
+                    case 'setCaseDataArray': setCaseDataArray(evt.data.args); break;
+                    case 'setAgentSession': setAgentSession(evt.data.args); break;
+                    case 'setAuthState': setAuthState(evt.data.args); break;
+                    case 'setCallContactDataArray': setCallContactDataArray(evt.data.args); break;
+                    case 'setVoiceContactDataArray': setVoiceContactDataArray(evt.data.args); break;
+                    case 'setCurrentUserInfo': setCurrentUserInfo(evt.data.args); break;
+                    case 'setCurrentVoiceContactData': setCurrentVoiceContactData(evt.data.args); break;
+                    case 'setCurrentCaseData': setCurrentCaseData(evt.data.args); break;
+                    case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
+
+                    case 'selectCaseItem': selectCaseItem(evt.data.args); break;
+                }
+            }
             if (evt.data.hideCaseDetail) {
                 selectCallContactItem(null);
                 selectCaseItem(null);
             }
-            if (evt.data.sessionStarted === true) {
-                if (ACDSessionManager.instance.hasSessionId) {
-                    CXoneAcdClient.instance.initAcdEngagement();
-                    const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                    setSession(join_ss);
-                    console.log('[IframeCases].[1]. Join session', join_ss);
-                    await setupAcd();
-                }
-            }
-            if (evt.data.sessionEnded === true) {
-                try {
-                    const end_ss = await CXoneAcdClient.instance.session.endSession({
-                        endContacts: true,
-                        forceLogoff: true,
-                        ignorePersonalQueue: true
-                    });
-                    console.log('[IframeCases]. End session', end_ss);
-                    setSession(end_ss);
-                }
-                catch { }
-            }
         })
-        
-        cxoneAuth.onAuthStatusChange.subscribe((data) => {
-            switch (data.status) {
-                case AuthStatus.AUTHENTICATING:
-                    setAuthState("AUTHENTICATING");
-                    setCurrentUserInfo(null);
-                    break;
-                case AuthStatus.AUTHENTICATED:
-                    setAuthState("AUTHENTICATED");
-                    if (window.location.pathname !== '/') {
-                        window.location.href = '/';
-                    }
-                    setAuthToken((data.response as AuthToken).accessToken);
-
-                    // ACD SDK consumption
-                    const acd = async function () {
-                        if (ACDSessionManager.instance.hasSessionId) {
-                            CXoneAcdClient.instance.initAcdEngagement();
-                            const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('[IframeCases].[0]. Join session', join_ss);
-                            await setupAcd();
-                        }
-                    }
-                    acd();
-                    break;
-                case AuthStatus.NOT_AUTHENTICATED:
-                    setAuthState("NOT_AUTHENTICATED");
-                    setCurrentUserInfo(null);
-                    break;
-                case AuthStatus.AUTHENTICATION_FAILED:
-                    setAuthState("AUTHENTICATION_FAILED");
-                    setCurrentUserInfo(null);
-                    break;
-                default:
-                    setCurrentUserInfo(null);
-                    setAuthState("");
-                    break;
-            }
-        });
-        cxoneAuth.restoreData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -229,14 +82,11 @@ const IframeCases = () => {
         if (!ignoreSelectCallContactItem) {
             selectCallContactItem(null, true);
         }
-        setCurrentCaseData(caseData);
-        if (caseData != null) {
-            try {
-                localStorage.setItem('currentCaseData', JSON.stringify(caseData));
-                localStorage.removeItem('currentCallContactData');
-                localStorage.removeItem('currentVoiceContactData');
-            } catch { }
-            window.parent?.postMessage({ openCaseDetail: true }, '*');
+        window.parent?.postMessage({ dest: 'Parent', openCaseDetail: caseData != null }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: caseData }, '*');
+        if (caseData?.id) {
+            const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+            window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: conversationHistory.messages }, '*');
         }
     }
 
@@ -244,18 +94,10 @@ const IframeCases = () => {
         if (!ignoreSelectCaseItem) {
             selectCaseItem(null, true);
         }
-        setCurrentCallContactData(callContactData);
         const voiceContactData = voiceContactDataArrayRef.current.filter(item => item.contactID === callContactData?.contactId)[0];
-        setCurrentVoiceContactData(voiceContactData);
-
-        if (callContactData != null) {
-            try {
-                localStorage.removeItem('currentCaseData');
-                localStorage.setItem('currentCallContactData', JSON.stringify(callContactData));
-                localStorage.setItem('currentVoiceContactData', JSON.stringify(voiceContactData));
-            } catch { }
-            window.parent?.postMessage({ openCaseDetail: true }, '*');
-        }
+        window.parent?.postMessage({ dest: 'Parent', openCaseDetail: callContactData != null }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: callContactData }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: voiceContactData }, '*');
     }
 
     if (authState !== "AUTHENTICATED") {
@@ -268,7 +110,7 @@ const IframeCases = () => {
         )
     }
 
-    if (!ACDSessionManager.instance.hasSessionId) {
+    if (!agentSession) {
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { CXoneAcdClient } from "@nice-devone/acd-sdk";
+import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
 import {
     ACDSessionManager,
 } from "@nice-devone/core-sdk";
@@ -7,7 +7,10 @@ import {
     AuthToken,
     UnavailableCode,
     AgentStateEvent,
-    AgentLegEvent
+    AgentLegEvent,
+    CallContactEvent,
+    CXoneCase,
+    SortingType
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -15,7 +18,7 @@ import {
     CXoneAuth,
     AuthStatus,
 } from "@nice-devone/auth-sdk";
-import { DigitalService } from "@nice-devone/digital-sdk";
+import { DigitalService, CXoneDigitalClient } from "@nice-devone/digital-sdk";
 import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
 import React from "react";
 
@@ -33,31 +36,94 @@ const IframeAuth = ({ iframeText }: any) => {
     const digitalService = new DigitalService();
     const cxoneAuth = CXoneAuth.instance;
 
-    const [, setSession] = useState<any>();
-
-    const [authState, setAuthState] = useState("");
     const [, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
-    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
     const [dialNumber, setDialNumber] = useState('');
 
+    const [agentSession, setAgentSession] = useState<any>();
+    const [authState, setAuthState] = useState("");
+
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const currentUserInfoRef = useRef(currentUserInfo);
+
+    const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const currentCallContactDataRef = useRef(currentCallContactData);
+
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+
+    const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
+    const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const currentCaseDataRef = useRef(currentCaseData);
 
     useEffect(() => {
         currentUserInfoRef.current = currentUserInfo;
-    }, [currentUserInfo]);
+        currentCallContactDataRef.current = currentCallContactData;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData]);
 
-    const setupAcd = async () => {
+    useEffect(() => {
+        console.log('[IframeAuth].useEffect...');
+        window.addEventListener('message', async function (evt) {
+            if (evt.data.dest === 'Iframe2') {
+                switch (evt.data.command) {
+                    case 'setCurrentVoiceContactData': setCurrentVoiceContactData(evt.data.args); break;
+                    case 'setCurrentCaseData': setCurrentCaseData(evt.data.args); break;
+                    case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
+                }
+            }
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setAgentSession', args: agentSession }, '*'); }, [agentSession]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setAuthState', args: authState }, '*'); }, [authState]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentUserInfo', args: currentUserInfo }, '*'); }, [currentUserInfo]);
+
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCaseDataArray', args: caseDataArray }, '*'); }, [caseDataArray]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: currentCaseData }, '*'); }, [currentCaseData]);
+
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setVoiceContactDataArray', args: voiceContactDataArray }, '*'); }, [voiceContactDataArray]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: currentVoiceContactData }, '*'); }, [currentVoiceContactData]);
+
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCallContactDataArray', args: callContactDataArray }, '*'); }, [callContactDataArray]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: currentCallContactData }, '*'); }, [currentCallContactData]);
+
+    const setupAcd = async function () {
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
             setAgentStatus(agentState);
-            console.log('[IframeAuth].agentState', agentState);
+            console.log('agentState', agentState);
         });
-        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
-            console.log('[IframeAuth].agentLegEvent', data);
-            if (data.status === "Dialing") {
-                CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
-                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+
+        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+            console.log("voiceContactUpdateEvent", voiceContactEvent);
+            if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
+                setCurrentVoiceContactData(voiceContactEvent);
+                if (voiceContactEvent.status === 'Disconnected') {
+                    setCurrentVoiceContactData(null);
+                }
+            }
+            setVoiceContactDataArray(arr => arr.filter(item => item.contactID !== voiceContactEvent.contactID));
+            if (voiceContactEvent.status !== 'Disconnected') {
+                setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
+            }
+        });
+
+        ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
+            console.log("callContactEvent", callContactEvent);
+            if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
+                setCurrentCallContactData(callContactEvent);
+                if (callContactEvent.status === 'Disconnected') {
+                    setCurrentCallContactData(null);
+                }
+            }
+            setCallContactDataArray(arr => arr.filter(item => item.contactId !== callContactEvent.contactId));
+            if (callContactEvent.status !== 'Disconnected') {
+                setCallContactDataArray(arr => [...arr, callContactEvent]);
             }
         });
 
@@ -70,9 +136,55 @@ const IframeAuth = ({ iframeText }: any) => {
             } as UnavailableCode);
             setUnavailableCodeArray(_unavailableCodeArray);
         }
+
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
-        console.log('[IframeAuth].CurrentUser', cuser);
+        console.log(cuser);
+
+        const digital = async function () {
+            const refreshCaseArray = async function () {
+                const _caseDataArray = await digitalService.getDigitalContactSearchResult({
+                    sortingType: SortingType.DESCENDING,
+                    sorting: 'createdAt',
+                    inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
+                    status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+                }, true, true);
+                console.log('Case data Array', _caseDataArray);
+                setCaseDataArray([]);
+                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
+            }
+            CXoneDigitalClient.instance.initDigitalEngagement();
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+                console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+            });
+            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                console.log("onDigitalContactEvent", digitalContactEvent);
+                refreshCaseArray();
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
+                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        setCurrentCaseData(digitalContactEvent.case);
+                        if (digitalContactEvent.case.status === 'closed') {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        }
+                    } else {
+                        if (digitalContactEvent.isCaseAssigned) {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: digitalContactEvent.messages }, '*');
+                        } else {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        }
+                    }
+                }
+            });
+            await refreshCaseArray();
+        }
+        await digital();
+
+        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
+            console.log('agentLegEvent', data);
+            if (data.status === "Dialing") {
+                CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
+            }
+        });
     }
 
     useEffect(() => {
@@ -95,7 +207,8 @@ const IframeAuth = ({ iframeText }: any) => {
                             CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('[IframeAuth].[1]. Join session', join_ss);
-                            window.parent?.postMessage({ sessionStarted: true }, '*');
+                            window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
+                            setAgentSession(join_ss);
                             await setupAcd();
                         }
                     }
@@ -134,6 +247,10 @@ const IframeAuth = ({ iframeText }: any) => {
     };
 
     const voiceConnection_connect = async () => {
+        if (voiceConnection_selectedOption !== 'softphone' && (voiceConnection_inputValue ?? '') === '') {
+            alert('Error');
+            return;
+        }
         if (!ACDSessionManager.instance.hasSessionId) {
             CXoneAcdClient.instance.initAcdEngagement();
             try {
@@ -142,13 +259,16 @@ const IframeAuth = ({ iframeText }: any) => {
                     stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
                 console.log('[IframeAuth].Start session', start_ss);
-                window.parent?.postMessage({ sessionStarted: true }, '*');
+                window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
             } catch { }
         }
         const join_ss = await CXoneAcdClient.instance.session.joinSession();
         console.log('[IframeAuth].[1]. Join session', join_ss);
-        window.parent?.postMessage({ sessionStarted: true }, '*');
+        window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
+        setAgentSession(join_ss);
         await setupAcd();
+        voiceConnection_setIsInputDisabled(false);
+        voiceConnection_setSelectedOption('phone');
     }
 
     async function updateAgentState(event: any) {
@@ -159,8 +279,8 @@ const IframeAuth = ({ iframeText }: any) => {
                 ignorePersonalQueue: true
             });
             console.log('[IframeAuth].End session', end_ss)
-            window.parent?.postMessage({ sessionEnded: true }, '*');
-            setSession(end_ss);
+            window.parent?.postMessage({ dest: 'Parent', sessionEnded: true }, '*');
+            setAgentSession(null);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
@@ -175,7 +295,6 @@ const IframeAuth = ({ iframeText }: any) => {
     function handleAuthButtonClick() {
         cxoneAuth.init(authSetting);
         cxoneAuth.getAuthorizeUrl('page', 'S256').then((authUrl: string) => {
-            //window.location.href = authUrl;
             const popupOptions = `width=500,height=800,scrollbars=yes,toolbar=no,left=${window.screenX + 300},top=${window.screenY + 100}`;
             const popupWindow = window.open(authUrl, "authWindow", popupOptions);
             window.addEventListener(

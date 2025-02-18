@@ -569,7 +569,6 @@ const App = () => {
                 currentVoiceContactData={currentVoiceContactData}
                 currentCaseData={currentCaseData}
                 messageDataArray={messageDataArray}
-                setMessageDataArray={setMessageDataArray}
             />
         </div>
     );

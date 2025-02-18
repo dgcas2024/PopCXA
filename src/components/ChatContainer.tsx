@@ -51,7 +51,6 @@ interface ChatContainerProps {
         mediaUrl: string | null
     }>;
     onClose?: () => void;
-    setMessageDataArray: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
 let isRecording = false;
@@ -64,8 +63,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     currentVoiceContactData,
     currentCaseData,
     messageDataArray,
-    onClose,
-    setMessageDataArray
+    onClose
 }) => {
     //const regexTranslate = new RegExp('^translate:::(?<content>.+):::translate$', 's');
     const regexHtml = new RegExp('^html:::(?<content>.+):::html$', 's');
@@ -467,49 +465,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
         event.target.value = '';
     }
-
-    //function handleImageSelect(event: any) {
-    //    if (currentCaseData == null || currentUserInfo == null) {
-    //        alert('error');
-    //        return;
-    //    }
-    //    const file = event.target.files[0];
-    //    if (file) {
-    //        const reader = new FileReader();
-    //        reader.onload = function (e: any) {
-    //            const messageData = {
-    //                chater: {
-    //                    name: currentUserInfo.user.fullName,
-    //                    avatar: currentUserInfo.user.publicImageUrl,
-    //                    time: new Date().getTime()
-    //                },
-    //                content: `Image sent:`,
-    //                type: 'sent',
-    //                mediaType: 'image',
-    //                mediaUrl: e.target.result
-    //            }
-    //            setMessageDataArray(arr => [...arr, messageData]);
-    //            event.target.value = '';
-    //        };
-    //        reader.readAsDataURL(file);
-    //    }
-    //}
-
-    //function handleVideoSelect(event: any) {
-    //    if (currentCaseData == null || currentUserInfo == null) {
-    //        alert('error');
-    //        return;
-    //    }
-    //    const file = event.target.files[0];
-    //    if (file) {
-    //        const reader = new FileReader();
-    //        reader.onload = function (e: any) {
-
-    //            event.target.value = '';
-    //        };
-    //        reader.readAsDataURL(file);
-    //    }
-    //}
 
     async function toggleRecording() {
         if (currentCaseData == null || currentUserInfo == null) {

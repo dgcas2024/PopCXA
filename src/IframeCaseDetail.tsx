@@ -94,7 +94,7 @@ const IframeCaseDetail = () => {
     }, []);
 
     function handleSetMessageData(messages: CXoneMessageArray) {
-        messages.forEach(m => {
+        const messageArray = messages.map(m => {
             if (m.direction === 'inbound') {
                 const messageData: ChatMessage = {
                     chater: {
@@ -114,7 +114,7 @@ const IframeCaseDetail = () => {
                         messageData.mediaUrl += `<a href="${x.url}">${x.fileName || x.friendlyName}</a>`
                     });
                 }
-                setMessageDataArray(arr => [...arr, messageData]);
+                return messageData;
             } else {
                 let avatar = defaultUserAvatar;
                 if (m.authorUser.id === currentUserInfoRef.current?.user.id) {
@@ -138,9 +138,10 @@ const IframeCaseDetail = () => {
                         messageData.mediaUrl += `<a href="${x.url}">${x.fileName || x.friendlyName}</a>`
                     });
                 }
-                setMessageDataArray(arr => [...arr, messageData]);
+                return messageData;
             }
         });
+        setMessageDataArray(messageArray);
     }
 
     const handleClose = () => {

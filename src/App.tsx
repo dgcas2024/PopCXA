@@ -46,6 +46,8 @@ const App = () => {
     const digitalService = new DigitalService();
     const cxoneDigitalContact = new CXoneDigitalContact();
 
+    const [, setSession] = useState<any>();
+
     const [authState, setAuthState] = useState("");
     const [, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
@@ -338,7 +340,7 @@ const App = () => {
                 ignorePersonalQueue: true
             });
             console.log('End session', end_ss)
-            await setupAcd();
+            setSession(end_ss);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };

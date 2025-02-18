@@ -171,6 +171,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         const rs = await fetch(`${baseUrl}/api/auth/invoke`, {
                             method: 'POST',
                             headers: {
+                                'skip_zrok_interstitial': 'true',
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
@@ -212,6 +213,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         const rs = await fetch(`${baseUrl}/api/auth/refresh`, {
                             method: 'POST',
                             headers: {
+                                'skip_zrok_interstitial': 'true',
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
@@ -253,7 +255,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
             sendRequestAsync: async function (resource: string, requestBuilder: (request: any) => void, tryCount: number): Promise<Response> {
                 const request: any = {
-                    headers: {}
+                    headers: { skip_zrok_interstitial: true }
                 };
                 requestBuilder(request);
                 if ((!this.token?.expires_at || (new Date().getTime() - new Date(this.token.expires_at as number).getTime()) > -30000) && !await this.refreshOrRequestTokenAsync()) {

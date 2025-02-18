@@ -5,6 +5,7 @@ import {
 import {
     CallContactEvent,
     CXoneCase,
+    AgentStateEvent
 } from "@nice-devone/common-sdk";
 import {
 } from "@nice-devone/auth-sdk";
@@ -22,21 +23,47 @@ const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png
 const IframeCases = () => {
     const cxoneDigitalContact = new CXoneDigitalContact();
 
-    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
-    const currentUserInfoRef = useRef(currentUserInfo);
-
+    const [authToken, ] = useState("");
+    const [agentStatus, ] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [agentSession, setAgentSession] = useState<any>();
     const [authState, setAuthState] = useState("");
-
-    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
-    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
-    const [, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
-
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
-
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+
+    const authTokenRef = useRef(authToken);
+    const agentStatusRef = useRef(agentStatus);
+    const agentSessionRef = useRef(agentSession);
+    const authStateRef = useRef(authState);
+    const caseDataArrayRef = useRef(caseDataArray);
+    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
+    const callContactDataArrayRef = useRef(callContactDataArray);
+    const currentUserInfoRef = useRef(currentUserInfo);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+    const currentCallContactDataRef = useRef(currentCallContactData);
+    const currentCaseDataRef = useRef(currentCaseData);
+
+    useEffect(() => {
+        authTokenRef.current = authToken;
+        agentStatusRef.current = agentStatus;
+        currentUserInfoRef.current = currentUserInfo;
+        currentCallContactDataRef.current = currentCallContactData;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+        agentSessionRef.current = agentSession;
+        authStateRef.current = authState;
+        caseDataArrayRef.current = caseDataArray;
+        voiceContactDataArrayRef.current = voiceContactDataArray;
+        callContactDataArrayRef.current = callContactDataArray;
+    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData, agentSession, authState, caseDataArray, voiceContactDataArray, callContactDataArray, authToken, agentStatus]);
+
+    useEffect(() => {
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'askState' }, '*');
+    }, [])
 
     useEffect(() => {
         voiceContactDataArrayRef.current = voiceContactDataArray;

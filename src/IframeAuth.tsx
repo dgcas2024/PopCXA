@@ -36,35 +36,46 @@ const IframeAuth = ({ iframeText }: any) => {
     const digitalService = new DigitalService();
     const cxoneAuth = CXoneAuth.instance;
 
-    const [, setAuthToken] = useState("");
-    const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
     const [dialNumber, setDialNumber] = useState('');
 
+    const [authToken, setAuthToken] = useState("");
+    const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [agentSession, setAgentSession] = useState<any>();
     const [authState, setAuthState] = useState("");
-
-    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
-    const currentUserInfoRef = useRef(currentUserInfo);
-
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
-    const currentCallContactDataRef = useRef(currentCallContactData);
-
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
-    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
-
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+
+    const authTokenRef = useRef(authToken);
+    const agentStatusRef = useRef(agentStatus);
+    const agentSessionRef = useRef(agentSession);
+    const authStateRef = useRef(authState);
+    const caseDataArrayRef = useRef(caseDataArray);
+    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
+    const callContactDataArrayRef = useRef(callContactDataArray);
+    const currentUserInfoRef = useRef(currentUserInfo);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+    const currentCallContactDataRef = useRef(currentCallContactData);
     const currentCaseDataRef = useRef(currentCaseData);
 
     useEffect(() => {
+        authTokenRef.current = authToken;
+        agentStatusRef.current = agentStatus;
         currentUserInfoRef.current = currentUserInfo;
         currentCallContactDataRef.current = currentCallContactData;
         currentVoiceContactDataRef.current = currentVoiceContactData;
         currentCaseDataRef.current = currentCaseData;
-    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData]);
+        agentSessionRef.current = agentSession;
+        authStateRef.current = authState;
+        caseDataArrayRef.current = caseDataArray;
+        voiceContactDataArrayRef.current = voiceContactDataArray;
+        callContactDataArrayRef.current = callContactDataArray;
+    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData, agentSession, authState, caseDataArray, voiceContactDataArray, callContactDataArray, authToken, agentStatus]);
 
     useEffect(() => {
         console.log('[IframeAuth].useEffect...');
@@ -74,6 +85,18 @@ const IframeAuth = ({ iframeText }: any) => {
                     case 'setCurrentVoiceContactData': setCurrentVoiceContactData(evt.data.args); break;
                     case 'setCurrentCaseData': setCurrentCaseData(evt.data.args); break;
                     case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
+                    case 'askState': {
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setAgentSession', args: agentSessionRef.current }, '*')
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setAuthState', args: authStateRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCaseDataArray', args: caseDataArrayRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setVoiceContactDataArray', args: voiceContactDataArrayRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCallContactDataArray', args: callContactDataArrayRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: currentCaseDataRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentUserInfo', args: currentUserInfoRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: currentVoiceContactDataRef.current }, '*');
+                        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: currentCallContactDataRef.current }, '*');
+                        break;
+                    }
                 }
             }
         })

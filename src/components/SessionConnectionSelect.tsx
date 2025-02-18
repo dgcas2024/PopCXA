@@ -80,12 +80,9 @@ function SessionConnectionSelect({ setupAcd }: any) {
         }
     };
 
-    useEffect(() => {
-        CXoneAcdClient.instance.initAcdEngagement();
-    }, []);
-
     async function Connect() {
         if (!ACDSessionManager.instance.hasSessionId) {
+            CXoneAcdClient.instance.initAcdEngagement();
             try {
                 const start_ss = await CXoneAcdClient.instance.session.startSession({
                     stationId: selectedOption === 'station' ? inputValue : '',

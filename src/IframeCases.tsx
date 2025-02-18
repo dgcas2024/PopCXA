@@ -158,7 +158,7 @@ const IframeCases = () => {
                 selectCaseItem(null);
             }
             if (evt.data.sessionStarted === true) {
-                setCaseDataArray(arr => arr);
+                setCaseDataArray(arr => JSON.parse(JSON.stringify(arr)));
             }
             if (evt.data.sessionEnded === true) {
                 setCaseDataArray([]);

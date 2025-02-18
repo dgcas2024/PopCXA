@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { CallContactEvent, CXoneCase, } from "@nice-devone/common-sdk";
-import { CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { } from "@nice-devone/acd-sdk";
 import Call from './Call';
 import { CXoneDigitalContact } from '@nice-devone/digital-sdk';
 
@@ -41,7 +41,7 @@ export interface ChatMessage {
 interface ChatContainerProps {
     currentUserInfo: any;
     currentCallContactData: CallContactEvent | null;
-    currentVoiceContactData: CXoneVoiceContact | null;
+    currentVoiceContactData: { contactID: string, status: string, agentMuted: boolean } | null;
     currentCaseData: CXoneCase | null;
     messageDataArray: Array<{
         chater: { avatar: string, name: string, time: number },

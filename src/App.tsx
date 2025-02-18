@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 /*import { v4 as uuidv4 } from 'uuid';*/
-import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
     ACDSessionManager,
 } from "@nice-devone/core-sdk";
@@ -60,8 +60,8 @@ const App = () => {
     const callContactDataArrayRef = useRef(callContactDataArray);
     const currentCallContactDataRef = useRef(currentCallContactData);
 
-    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
     const voiceContactDataArrayRef = useRef(voiceContactDataArray);
     const currentVoiceContactDataRef = useRef(currentVoiceContactData);
 
@@ -100,7 +100,12 @@ const App = () => {
             console.log('agentState', agentState);
         });
 
-        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: { contactID: string, status: string, agentMuted: boolean }) => {
+            voiceContactEvent = {
+                contactID: voiceContactEvent.contactID,
+                status: voiceContactEvent.status,
+                agentMuted: voiceContactEvent.agentMuted,
+            }
             console.log("voiceContactUpdateEvent", voiceContactEvent);
 
             //const serverTime = DateTimeUtilService.getServerTimestamp();

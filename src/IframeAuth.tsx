@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
     ACDSessionManager,
 } from "@nice-devone/core-sdk";
@@ -44,10 +44,10 @@ const IframeAuth = ({ iframeText }: any) => {
     const [agentSession, setAgentSession] = useState<any>();
     const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
 
@@ -119,7 +119,12 @@ const IframeAuth = ({ iframeText }: any) => {
             console.log('agentState', agentState);
         });
 
-        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+        CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: { contactID: string, status: string, agentMuted: boolean }) => {
+            voiceContactEvent = {
+                contactID: voiceContactEvent.contactID,
+                status: voiceContactEvent.status,
+                agentMuted: voiceContactEvent.agentMuted,
+            }
             console.log("voiceContactUpdateEvent", voiceContactEvent);
             if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
                 setCurrentVoiceContactData(voiceContactEvent);

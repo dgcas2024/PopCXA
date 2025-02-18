@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 /*import { v4 as uuidv4 } from 'uuid';*/
-import { CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { } from "@nice-devone/acd-sdk";
 import {
 } from "@nice-devone/core-sdk";
 import {
@@ -29,10 +29,10 @@ const IframeCaseDetail = () => {
     const [agentSession, setAgentSession] = useState<any>();
     const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<CXoneVoiceContact>>([]);
+    const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<CXoneVoiceContact | null>(null);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
 

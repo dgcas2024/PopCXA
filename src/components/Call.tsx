@@ -1,44 +1,19 @@
-﻿/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿import './Call.css';
 
-import './Call.css';
-
-import { useEffect, useRef, useState } from "react";
-import { v4 as uuidv4 } from 'uuid';
-import { CXoneAcdClient, CXoneVoiceContact } from "@nice-devone/acd-sdk";
+import { useEffect, useState } from "react";
+import { } from 'uuid';
+import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
-    StorageKeys,
-    ACDSessionManager,
-    DateTimeUtilService,
-    LocalStorageHelper
 } from "@nice-devone/core-sdk";
 import {
-    AgentSessionStatus,
-    AuthToken,
-    EndSessionRequest,
-    UnavailableCode,
-    AgentStateEvent,
-    SortingType,
-    UserInfo,
     CallContactEvent,
-    CXoneCase
 } from "@nice-devone/common-sdk";
 import {
-    AuthSettings,
-    AuthWithCodeReq,
-    CXoneAuth,
-    AuthStatus,
-    AuthWithTokenReq,
-    CXoneUser
 } from "@nice-devone/auth-sdk";
 import {
-    CXoneDigitalClient,
-    CXoneDigitalContact,
-    DigitalService,
 } from "@nice-devone/digital-sdk";
-import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
-import { CXoneClient, ContactService, VoiceControlService, AgentLegService } from "@nice-devone/agent-sdk";
+import { } from "@nice-devone/voice-sdk";
+import { ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
 import React from "react";
 
 interface Agent {
@@ -55,6 +30,10 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+
+    useEffect(() => {
+        CXoneAcdClient.instance.initAcdEngagement();
+    }, []);
 
     useEffect(() => {
         if (showTransferModal) {
@@ -94,7 +73,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
     );
 
     const _currentCallContactData = currentCallContactData as CallContactEvent;
-    const _currentVoiceContactData = currentVoiceContactData as CXoneVoiceContact;
+    const _currentVoiceContactData = currentVoiceContactData as { contactID: string, status: string, agentMuted: boolean };
 
     async function handleAccept() {
         await contactService.acceptContact(_currentCallContactData.contactId);

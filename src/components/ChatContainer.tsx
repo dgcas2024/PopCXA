@@ -88,7 +88,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     useEffect(() => {
         console.log('[ChatContainer].useEffect[messageDataList]...');
         if (messageListDivRef?.current) {
-            messageListDivRef.current.scrollTop = 9999;
+            messageListDivRef.current.lastElementChild?.scrollIntoView();
+            setTimeout(() => {
+                messageListDivRef?.current?.lastElementChild?.scrollIntoView();
+            }, 1000);
         }
     }, [messageDataArray]);
 

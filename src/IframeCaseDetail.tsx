@@ -58,26 +58,37 @@ const IframeCaseDetail = () => {
     }, [currentCallContactData, currentCaseData, currentUserInfo, currentVoiceContactData]);
 
     useEffect(() => {
-        setMessageDataArray([]);
-        try {
-            const caseData = (JSON.parse(localStorage.getItem('currentCaseData') ?? '{}') as CXoneCase);
-            if (caseData?.id) {
-                setCurrentCaseData(caseData);
-                const run = async (caseData: CXoneCase) => {
-                    const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
-                    handleSetMessageData(conversationHistory.messages);
+        const initData = function () {
+            try {
+                const caseData = (JSON.parse(localStorage.getItem('currentCaseData') ?? '{}') as CXoneCase);
+                if (caseData?.id) {
+                    setCurrentCaseData(caseData);
+                    const run = async (caseData: CXoneCase) => {
+                        const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
+                        handleSetMessageData(conversationHistory.messages);
+                    }
+                    run(caseData);
                 }
-                run(caseData);
+            } catch { }
+            try {
+                const callContactData = (JSON.parse(localStorage.getItem('currentCallContactData') ?? '{}') as CallContactEvent);
+                const voiceContactData = (JSON.parse(localStorage.getItem('currentVoiceContactData') ?? '{}') as CXoneVoiceContact);
+                if (callContactData?.contactId) {
+                    setCurrentCallContactData(callContactData);
+                    setCurrentVoiceContactData(voiceContactData);
+                }
+            } catch { }
+        }
+
+        window.addEventListener('message', function (evt) {
+            if (evt.data.refreshCaseDetail) {
+                setMessageDataArray([]);
+                initData();
             }
-        } catch { }
-        try {
-            const callContactData = (JSON.parse(localStorage.getItem('currentCallContactData') ?? '{}') as CallContactEvent);
-            const voiceContactData = (JSON.parse(localStorage.getItem('currentVoiceContactData') ?? '{}') as CXoneVoiceContact);
-            if (callContactData?.contactId) {
-                setCurrentCallContactData(callContactData);
-                setCurrentVoiceContactData(voiceContactData);
-            }
-        } catch { }
+        })
+
+        setMessageDataArray([]);
+        initData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

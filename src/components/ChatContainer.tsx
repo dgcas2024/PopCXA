@@ -86,7 +86,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const messageListDivRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        console.log('useEffect[messageDataList]...');
+        console.log('[ChatContainer].useEffect[messageDataList]...');
         if (messageListDivRef?.current) {
             messageListDivRef.current.scrollTop = 9999;
         }
@@ -166,7 +166,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         if (_currentToken?.access_token != null && _currentStamp !== currentStamp) {
                             return true;
                         }
-                        console.log("Request token...");
+                        console.log("[ChatContainer].Request token...");
                         this.clear();
                         const rs = await fetch(`${baseUrl}/api/auth/invoke`, {
                             method: 'POST',
@@ -184,7 +184,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         if (json.success) {
                             json.expires_at = new Date(new Date().getTime() + json.expires_in * 1000);
                             this.token = json;
-                            console.log("Request token done.");
+                            console.log("[ChatContainer].Request token done.");
                             return true;
                         }
                         this.message = json.message;
@@ -206,7 +206,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         if (_currentToken?.access_token != null && _currentStamp !== currentStamp) {
                             return true;
                         }
-                        console.log("Refresh token...");
+                        console.log("[ChatContainer].Refresh token...");
                         const refresh_token = this.token.refresh_token;
                         const access_token = this.token.access_token;
                         this.clear();
@@ -225,14 +225,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         if (json.success) {
                             json.expires_at = new Date(new Date().getTime() + json.expires_in * 1000);
                             this.token = json;
-                            console.log("Refresh token done.");
+                            console.log("[ChatContainer].Refresh token done.");
                             return true;
                         }
                         this.message = json.message;
                     } catch (e: any) {
                         this.message = (typeof e) === typeof '' ? e as string : JSON.stringify(e);
                     }
-                    console.warn("Refresh token fail", this.message)
+                    console.warn("[ChatContainer].Refresh token fail", this.message)
                     return false;
                 });
             },
@@ -437,7 +437,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     }
                 }, 1);
                 const filemainUpload2_Json = await filemainUpload2.json();
-                console.log('File upload', filemainUpload2_Json);
+                console.log('[ChatContainer].File upload', filemainUpload2_Json);
                 let text = `File download`;
                 let attachments = [];
                 if ((filemainUpload2_Json.contentType ?? '').startsWith('image/')) {
@@ -553,7 +553,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         request.headers['Duration'] = duration;
                     }, 1);
                     const audioUpload2_Json = await audioUpload2.json();
-                    console.log('Voice record', audioUpload2_Json);
+                    console.log('[ChatContainer].Voice record', audioUpload2_Json);
                     const text = `audio:::api/file/download/${audioUpload2_Json.id}`;
                     await cxoneDigitalContact.reply({
                         messageContent: { type: 'TEXT', payload: { text: text } },
@@ -566,7 +566,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 isRecording = true;
                 setRecordButtonText("⏹️ Stop");
             } catch (err) {
-                console.error('Error accessing microphone:', err);
+                console.error('[ChatContainer].Error accessing microphone:', err);
                 alert('Error accessing microphone. Please check permissions.');
             }
         } else {
@@ -593,7 +593,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     }
 
     async function updateCaseStatus(event: any) {
-        console.log('updateCaseStatus', event);
+        console.log('[ChatContainer].updateCaseStatus', event);
         if (currentCaseData != null) {
             const cxoneDigitalContact = new CXoneDigitalContact();
             cxoneDigitalContact.caseId = currentCaseData.id;

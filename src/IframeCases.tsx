@@ -33,6 +33,8 @@ const IframeCases = () => {
     const cxoneAuth = CXoneAuth.instance;
     const digitalService = new DigitalService();
 
+    const [, setSession] = useState<any>();
+
     const [authState, setAuthState] = useState("");
     const [, setAuthToken] = useState("");
 
@@ -62,7 +64,7 @@ const IframeCases = () => {
 
     const setupAcd = async () => {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
-            console.log("voiceContactUpdateEvent", voiceContactEvent);
+            console.log("[IframeCases].voiceContactUpdateEvent", voiceContactEvent);
             if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
@@ -78,7 +80,7 @@ const IframeCases = () => {
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
-            console.log("callContactEvent", callContactEvent);
+            console.log("[IframeCases].callContactEvent", callContactEvent);
             if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
@@ -95,7 +97,7 @@ const IframeCases = () => {
 
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
-        console.log(cuser);
+        console.log(`[IframeCases].CurrentUser`, cuser);
 
         const digital = async function () {
             const refreshCaseArray = async function (_delay: number | null) {
@@ -108,17 +110,17 @@ const IframeCases = () => {
                     inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
-                console.log('Case data array', rs);
+                console.log('[IframeCases].Case data array', rs);
                 setCaseDataArray([]);
                 (rs.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
             }
             // Digital SDK consumption
             CXoneDigitalClient.instance.initDigitalEngagement();
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+                console.log("[IframeCases].onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                console.log("onDigitalContactEvent", digitalContactEvent);
+                console.log("[IframeCases].onDigitalContactEvent", digitalContactEvent);
                 refreshCaseArray(1000);
                 if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
@@ -145,26 +147,40 @@ const IframeCases = () => {
     }
 
     useEffect(() => {
-        console.log('useEffect[caseDataArray]...');
+        console.log('[IframeCases].useEffect[caseDataArray]...');
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
     }, [caseDataArray]);
 
     useEffect(() => {
-        window.addEventListener('message', function (evt) {
+        console.log('[IframeCases].useEffect...');
+        window.addEventListener('message', async function (evt) {
             if (evt.data.hideCaseDetail) {
                 selectCallContactItem(null);
                 selectCaseItem(null);
             }
             if (evt.data.sessionStarted === true) {
-                setCaseDataArray(arr => JSON.parse(JSON.stringify(arr)));
+                CXoneAcdClient.instance.initAcdEngagement();
+                const join_ss = await CXoneAcdClient.instance.session.joinSession();
+                setSession(join_ss);
+                console.log('[IframeCases].[1]. Join session', join_ss);
+                await setupAcd();
             }
             if (evt.data.sessionEnded === true) {
-                setCaseDataArray([]);
+                try {
+                    const end_ss = await CXoneAcdClient.instance.session.endSession({
+                        endContacts: true,
+                        forceLogoff: true,
+                        ignorePersonalQueue: true
+                    });
+                    console.log('[IframeCases]. End session', end_ss);
+                    setSession(end_ss);
+                }
+                catch { }
             }
         })
-        console.log('useEffect...');
+        
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -183,7 +199,7 @@ const IframeCases = () => {
                         if (ACDSessionManager.instance.hasSessionId) {
                             CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('[0]. Join session', join_ss);
+                            console.log('[IframeCases].[0]. Join session', join_ss);
                             await setupAcd();
                         }
                     }

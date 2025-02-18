@@ -94,6 +94,7 @@ const IframeCaseDetail = () => {
 
     const setupAcd = async function () {
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: CXoneVoiceContact) => {
+            console.log('[IframeCaseDetail].voiceContactUpdateEvent', voiceContactEvent);
             if (currentVoiceContactDataRef.current?.contactID === voiceContactEvent.contactID) {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
@@ -103,6 +104,7 @@ const IframeCaseDetail = () => {
         });
 
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
+            console.log('[IframeCaseDetail].callContactEventSubject', callContactEvent);
             if (currentCallContactDataRef.current?.contactId === callContactEvent.contactId) {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
@@ -113,7 +115,7 @@ const IframeCaseDetail = () => {
 
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
-        console.log(cuser);
+        console.log('[IframeCaseDetail].CurrentUser', cuser);
 
         const digital = async function () {
             CXoneDigitalClient.instance.initDigitalEngagement();
@@ -121,6 +123,7 @@ const IframeCaseDetail = () => {
                 // Nothing
             });
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+                console.log('[IframeCaseDetail].onDigitalContactEvent', digitalContactEvent);
                 if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
                         setCurrentCaseData(digitalContactEvent.case);
@@ -142,7 +145,7 @@ const IframeCaseDetail = () => {
     }
 
     useEffect(() => {
-        console.log('useEffect...');
+        console.log('[IframeCaseDetail].useEffect...');
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -161,7 +164,7 @@ const IframeCaseDetail = () => {
                         if (ACDSessionManager.instance.hasSessionId) {
                             CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('Join session', join_ss);
+                            console.log('[IframeCaseDetail].Join session', join_ss);
                             await setupAcd();
                         }
                     }

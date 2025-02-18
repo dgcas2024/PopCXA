@@ -51,14 +51,13 @@ const IframeAuth = ({ iframeText }: any) => {
     const setupAcd = async () => {
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
             setAgentStatus(agentState);
-            console.log('agentState', agentState);
+            console.log('[IframeAuth].agentState', agentState);
         });
         CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
-            console.log('agentLegEvent', data);
+            console.log('[IframeAuth].agentLegEvent', data);
             if (data.status === "Dialing") {
                 CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
                 //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
-                console.log('agentLegEvent: kkkkkkkkk');
             }
         });
 
@@ -73,11 +72,11 @@ const IframeAuth = ({ iframeText }: any) => {
         }
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
-        console.log(cuser);
+        console.log('[IframeAuth].CurrentUser', cuser);
     }
 
     useEffect(() => {
-        console.log('useEffect...')
+        console.log('[IframeAuth].useEffect...')
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
                 case AuthStatus.AUTHENTICATING:
@@ -95,7 +94,7 @@ const IframeAuth = ({ iframeText }: any) => {
                         if (ACDSessionManager.instance.hasSessionId) {
                             CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('[0]. Join session', join_ss);
+                            console.log('[IframeAuth].[1]. Join session', join_ss);
                             window.parent?.postMessage({ sessionStarted: true }, '*');
                             await setupAcd();
                         }
@@ -142,12 +141,12 @@ const IframeAuth = ({ iframeText }: any) => {
                     stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',
                     stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
-                console.log('Start session', start_ss);
+                console.log('[IframeAuth].Start session', start_ss);
                 window.parent?.postMessage({ sessionStarted: true }, '*');
             } catch { }
         }
         const join_ss = await CXoneAcdClient.instance.session.joinSession();
-        console.log('[1]. Join session', join_ss);
+        console.log('[IframeAuth].[1]. Join session', join_ss);
         window.parent?.postMessage({ sessionStarted: true }, '*');
         await setupAcd();
     }
@@ -159,13 +158,13 @@ const IframeAuth = ({ iframeText }: any) => {
                 forceLogoff: true,
                 ignorePersonalQueue: true
             });
-            console.log('End session', end_ss)
+            console.log('[IframeAuth].End session', end_ss)
             window.parent?.postMessage({ sessionEnded: true }, '*');
             setSession(end_ss);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
-        console.log('updateAgentState', state);
+        console.log('[IframeAuth].updateAgentState', state);
         await CXoneAcdClient.instance.session.agentStateService.setAgentState({
             state: state.state,
             reason: state.reason,
@@ -203,7 +202,7 @@ const IframeAuth = ({ iframeText }: any) => {
             return;
         }
         const skills = await CXoneAcdClient.instance.getAgentSkills(currentUserInfoRef.current.user.agentId);
-        console.log(skills)
+        console.log('[IframeAuth].Skill', skills)
         const dialInfo = {
             skillId: skills[0].skillId,
             phoneNumber: dialNumber,

@@ -105,15 +105,12 @@ const IframeAuth = ({ iframeText }: any) => {
 
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setAgentSession', args: agentSession }, '*'); }, [agentSession]);
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setAuthState', args: authState }, '*'); }, [authState]);
-    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentUserInfo', args: currentUserInfo }, '*'); }, [currentUserInfo]);
-
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCaseDataArray', args: caseDataArray }, '*'); }, [caseDataArray]);
-    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: currentCaseData }, '*'); }, [currentCaseData]);
-
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setVoiceContactDataArray', args: voiceContactDataArray }, '*'); }, [voiceContactDataArray]);
-    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: currentVoiceContactData }, '*'); }, [currentVoiceContactData]);
-
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCallContactDataArray', args: callContactDataArray }, '*'); }, [callContactDataArray]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: currentVoiceContactData }, '*'); }, [currentVoiceContactData]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: currentCaseData }, '*'); }, [currentCaseData]);
+    useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentUserInfo', args: currentUserInfo }, '*'); }, [currentUserInfo]);
     useEffect(() => { window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: currentCallContactData }, '*'); }, [currentCallContactData]);
 
     const setupAcd = async function () {

@@ -85,6 +85,7 @@ const IframeCaseDetail = () => {
                 setMessageDataArray([]);
                 initData();
             }
+
         })
 
         setMessageDataArray([]);

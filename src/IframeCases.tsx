@@ -161,11 +161,13 @@ const IframeCases = () => {
                 selectCaseItem(null);
             }
             if (evt.data.sessionStarted === true) {
-                CXoneAcdClient.instance.initAcdEngagement();
-                const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                setSession(join_ss);
-                console.log('[IframeCases].[1]. Join session', join_ss);
-                await setupAcd();
+                if (ACDSessionManager.instance.hasSessionId) {
+                    CXoneAcdClient.instance.initAcdEngagement();
+                    const join_ss = await CXoneAcdClient.instance.session.joinSession();
+                    setSession(join_ss);
+                    console.log('[IframeCases].[1]. Join session', join_ss);
+                    await setupAcd();
+                }
             }
             if (evt.data.sessionEnded === true) {
                 try {

@@ -150,8 +150,7 @@ const IframeAuth = ({ iframeText }: any) => {
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
                 console.log('Case data Array', _caseDataArray);
-                setCaseDataArray([]);
-                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
+                setCaseDataArray((_caseDataArray.data as Array<any>).reverse());
             }
             CXoneDigitalClient.instance.initDigitalEngagement();
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {

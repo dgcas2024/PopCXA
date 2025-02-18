@@ -33,6 +33,8 @@ const IframeAuth = ({ iframeText }: any) => {
     const digitalService = new DigitalService();
     const cxoneAuth = CXoneAuth.instance;
 
+    const [, setSession] = useState<any>();
+
     const [authState, setAuthState] = useState("");
     const [, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
@@ -158,7 +160,7 @@ const IframeAuth = ({ iframeText }: any) => {
             });
             console.log('End session', end_ss)
             window.parent?.postMessage({ sessionEnded: true }, '*');
-            await setupAcd();
+            setSession(end_ss);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };

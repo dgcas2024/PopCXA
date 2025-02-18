@@ -131,7 +131,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const publicApiAuth = function () {
         const lock1 = lockManager();
         const lock2 = lockManager();
-        const publicApi = 'https://localhost:7087@chrome-ext@3E62DEC9-5C5E-4A50-892B-B33062389FAE';
+        const publicApi = `${process.env.REACT_APP__POPSHE_URL}@${process.env.REACT_APP__POPSHE_CREDENTIAL}`;
         const clientId = publicApi.split('@')[1];
         const clientSecret = publicApi.split('@')[2];
         let baseUrl = publicApi.split('@')[0];
@@ -376,6 +376,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             alert('error');
             return;
         }
+        const use_cxone_storage = await publicApiAuth.sendRequestAsync('/api/file/storage-type', function (request) { request.method = 'GET'; }, 1);
+        const use_cxone_storage_json = await use_cxone_storage.json();
         const files = event.target.files;
         for (let i = 0; i < (files?.length ?? 0); i++) {
             const file = files?.item(i);
@@ -387,32 +389,41 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 }
                 if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
                     const thumbnailBlob = await thumbnailAsync(file);
-                    const thumbnaiFileName = `${uuidv4().replaceAll('-', '')}.jpeg`;
-                    const formDataBlob = new FormData();
-                    const uploadBlob = await cxoneDigitalContact.upload({
-                        content: (await blob2Base64Async(thumbnailBlob)).split(',')[1],
-                        mimeType: thumbnailBlob.type
-                    }, uuidv4());
-                    formDataBlob.append('url', uploadBlob.url);
-                    const uploadBlob2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                    const thumbnailFileName = `${uuidv4().replaceAll('-', '')}.jpeg`;
+                    const thumbnailFromData = new FormData();
+                    if (use_cxone_storage_json.code === 1) {
+                        const thumbnailUpload = await cxoneDigitalContact.upload({
+                            content: (await blob2Base64Async(thumbnailBlob)).split(',')[1],
+                            mimeType: thumbnailBlob.type
+                        }, uuidv4());
+                        thumbnailFromData.append('url', thumbnailUpload.url);
+                    } else {
+                        thumbnailFromData.append('file', thumbnailBlob, thumbnailFileName);
+                    }
+                    const thumbnailUpload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
                         request.method = 'POST';
-                        request.body = formDataBlob;
-                        request.headers['FileName'] = encodeURIComponent(thumbnaiFileName);
+                        request.body = thumbnailFromData;
+                        request.headers['FileName'] = encodeURIComponent(thumbnailFileName);
                         request.headers['ContentType'] = thumbnailBlob.type;
                         request.headers['ContentLength'] = thumbnailBlob.size;
                     }, 1);
-                    const uploadBlob2Json = await uploadBlob2.json();
-                    thumbnailId = uploadBlob2Json.id;
+                    const thumbnailUpload2_Json = await thumbnailUpload2.json();
+                    thumbnailId = thumbnailUpload2_Json.id;
                 }
-                const formData = new FormData();
-                const upload = await cxoneDigitalContact.upload({
-                    content: (await blob2Base64Async(file)).split(',')[1],
-                    mimeType: file.type
-                }, uuidv4());
-                formData.append('url', upload.url);
-                const upload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                const filemainFormData = new FormData();
+                if (use_cxone_storage_json.code === 1) {
+                    const filemainUpload = await cxoneDigitalContact.upload({
+                        content: (await blob2Base64Async(file)).split(',')[1],
+                        mimeType: file.type
+                    }, uuidv4());
+                    filemainFormData.append('url', filemainUpload.url);
+                } else {
+                    filemainFormData.append('file', file);
+                }
+                
+                const filemainUpload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
                     request.method = 'POST';
-                    request.body = formData;
+                    request.body = filemainFormData;
                     request.headers['FileName'] = encodeURIComponent(file.name);
                     request.headers['ContentType'] = file.type;
                     request.headers['ContentLength'] = file.size;
@@ -423,22 +434,22 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         request.headers['ThumbnailId'] = thumbnailId;
                     }
                 }, 1);
-                const upload2Json = await upload2.json();
-                console.log('File upload', upload2Json);
+                const filemainUpload2_Json = await filemainUpload2.json();
+                console.log('File upload', filemainUpload2_Json);
                 let text = `File download`;
                 let attachments = [];
-                if ((upload2Json.contentType ?? '').startsWith('image/')) {
-                    text = `image:::api/file/download/${upload2Json.id}`;
-                } else if ((upload2Json.contentType ?? '').startsWith('audio/')) {
-                    text = `audio:::api/file/download/${upload2Json.id}`;
-                } else if ((upload2Json.contentType ?? '').startsWith('video/')) {
-                    text = `video:::api/file/download/${upload2Json.id}`;
+                if ((filemainUpload2_Json.contentType ?? '').startsWith('image/')) {
+                    text = `image:::api/file/download/${filemainUpload2_Json.id}`;
+                } else if ((filemainUpload2_Json.contentType ?? '').startsWith('audio/')) {
+                    text = `audio:::api/file/download/${filemainUpload2_Json.id}`;
+                } else if ((filemainUpload2_Json.contentType ?? '').startsWith('video/')) {
+                    text = `video:::api/file/download/${filemainUpload2_Json.id}`;
                 }
                 else {
                     attachments.push({
-                        id: upload2Json.id,
-                        friendlyName: upload2Json.fileName,
-                        url: `${publicApiAuth.baseUrl}/api/file/download/${upload2Json.id}`
+                        id: filemainUpload2_Json.id,
+                        friendlyName: filemainUpload2_Json.fileName,
+                        url: `${publicApiAuth.baseUrl}/api/file/download/${filemainUpload2_Json.id}`
                     });
                 }
                 await cxoneDigitalContact.reply({
@@ -516,26 +527,32 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     if (start === -1) {
                         return;
                     }
+                    const use_cxone_storage = await publicApiAuth.sendRequestAsync('/api/file/storage-type', function (request) { request.method = 'GET'; }, 1);
+                    const use_cxone_storage_json = await use_cxone_storage.json();
                     const duration = performance.now() - start;
                     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                     const audioFileName = `${uuidv4().replaceAll('-', '')}.wav`;
-                    const formData = new FormData();
-                    const upload = await cxoneDigitalContact.upload({
-                        content: (await blob2Base64Async(audioBlob)).split(',')[1],
-                        mimeType: audioBlob.type
-                    }, uuidv4());
-                    formData.append('url', upload.url);
-                    const upload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
+                    const audioFormData = new FormData();
+                    if (use_cxone_storage_json.code === 1) {
+                        const audioUpload = await cxoneDigitalContact.upload({
+                            content: (await blob2Base64Async(audioBlob)).split(',')[1],
+                            mimeType: audioBlob.type
+                        }, uuidv4());
+                        audioFormData.append('url', audioUpload.url);
+                    } else {
+                        audioFormData.append('file', audioBlob, audioFileName);
+                    }
+                    const audioUpload2 = await publicApiAuth.sendRequestAsync('/api/file/upload', function (request) {
                         request.method = 'POST';
-                        request.body = formData;
+                        request.body = audioFormData;
                         request.headers['FileName'] = encodeURIComponent(audioFileName);
                         request.headers['ContentType'] = audioBlob.type;
                         request.headers['ContentLength'] = audioBlob.size;
                         request.headers['Duration'] = duration;
                     }, 1);
-                    const upload2Json = await upload2.json();
-                    console.log('Voice record', upload2Json);
-                    const text = `audio:::api/file/download/${upload2Json.id}`;
+                    const audioUpload2_Json = await audioUpload2.json();
+                    console.log('Voice record', audioUpload2_Json);
+                    const text = `audio:::api/file/download/${audioUpload2_Json.id}`;
                     await cxoneDigitalContact.reply({
                         messageContent: { type: 'TEXT', payload: { text: text } },
                         recipients: [],

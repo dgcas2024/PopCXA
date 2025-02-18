@@ -83,6 +83,7 @@ const IframeCases = () => {
             selectCallContactItem(null, true);
         }
         window.parent?.postMessage({ dest: 'Parent', openCaseDetail: caseData != null }, '*');
+        window.parent?.postMessage({ dest: 'Parent', hideCaseDetail: caseData == null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: caseData }, '*');
         if (caseData?.id) {
             const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
@@ -96,6 +97,7 @@ const IframeCases = () => {
         }
         const voiceContactData = voiceContactDataArrayRef.current.filter(item => item.contactID === callContactData?.contactId)[0];
         window.parent?.postMessage({ dest: 'Parent', openCaseDetail: callContactData != null }, '*');
+        window.parent?.postMessage({ dest: 'Parent', hideCaseDetail: callContactData == null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: callContactData }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: voiceContactData }, '*');
     }

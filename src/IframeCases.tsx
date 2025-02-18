@@ -106,7 +106,7 @@ const IframeCases = () => {
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>
-                    <h4>{authState}</h4>
+                    <h4>{authState || 'N/A'}</h4>
                 </div>
             </div>
         )

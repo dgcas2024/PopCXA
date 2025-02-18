@@ -92,8 +92,8 @@ const IframeAuth = ({ iframeText }: any) => {
                     setAuthToken((data.response as AuthToken).accessToken);
 
                     const acd = async function () {
-                        CXoneAcdClient.instance.initAcdEngagement();
                         if (ACDSessionManager.instance.hasSessionId) {
+                            CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('[0]. Join session', join_ss);
                             window.parent?.postMessage({ sessionStarted: true }, '*');
@@ -136,6 +136,7 @@ const IframeAuth = ({ iframeText }: any) => {
 
     const voiceConnection_connect = async () => {
         if (!ACDSessionManager.instance.hasSessionId) {
+            CXoneAcdClient.instance.initAcdEngagement();
             try {
                 const start_ss = await CXoneAcdClient.instance.session.startSession({
                     stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',

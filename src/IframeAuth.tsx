@@ -130,6 +130,7 @@ const IframeAuth = ({ iframeText }: any) => {
                 setCurrentVoiceContactData(voiceContactEvent);
                 if (voiceContactEvent.status === 'Disconnected') {
                     setCurrentVoiceContactData(null);
+                    window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCallContactItem', args: null }, '*');
                 }
             }
             setVoiceContactDataArray(arr => arr.filter(item => item.contactID !== voiceContactEvent.contactID));
@@ -144,6 +145,7 @@ const IframeAuth = ({ iframeText }: any) => {
                 setCurrentCallContactData(callContactEvent);
                 if (callContactEvent.status === 'Disconnected') {
                     setCurrentCallContactData(null);
+                    window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCallContactItem', args: null }, '*');
                 }
             }
             setCallContactDataArray(arr => arr.filter(item => item.contactId !== callContactEvent.contactId));

@@ -95,6 +95,7 @@ const IframeCases = () => {
                     case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
 
                     case 'selectCaseItem': selectCaseItem(evt.data.args); break;
+                    case 'selectCallContactItem': selectCallContactItem(evt.data.args); break;
                 }
             }
             if (evt.data.hideCaseDetail) {

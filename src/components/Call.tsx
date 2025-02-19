@@ -155,7 +155,12 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                 <div className="caller-avatar">
                     <i className="fas fa-user fa-2x" style={{ color: '#666' }}></i>
                 </div>
-                <div className="caller-name">{_currentCallContactData.ani}{_currentCallContactData.ani === "REAGENT" ? (<div style={{ fontSize: '14px', color: '#777' }}>{_currentCallContactData.dnis}</div>) : (<></>)}</div>
+                {_currentCallContactData.status !== "Dialing" && (
+                    <div className="caller-name">{_currentCallContactData.ani}{_currentCallContactData.ani === "REAGENT" ? (<div style={{ fontSize: '14px', color: '#777' }}>{_currentCallContactData.dnis}</div>) : (<></>)}</div>
+                )}
+                {_currentCallContactData.status === "Dialing" && (
+                    <div className="caller-name">{_currentCallContactData.dnis}</div>
+                )}
                 {/*<div className="caller-number">{_currentCallContactData.ani}</div>*/}
                 <div className="call-status">{_currentCallContactData.status}</div>
                 <div className="timer" data-starttime={_currentCallContactData.startTime}>00:00:00</div>
@@ -212,6 +217,15 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                         {/*<button disabled={true} className="action-button transfer" onClick={() => setShowTransferModal(true)}>*/}
                         {/*    <i className="fas fa-exchange-alt"></i>*/}
                         {/*</button>*/}
+                    </div>
+                )
+            }
+            {
+                _currentCallContactData.ani !== "REAGENT" && _currentCallContactData.status === "Dialing" && (
+                    <div className="call-actions">
+                        <button className="action-button reject" onClick={handleReject}>
+                            <i className="fas fa-phone-slash"></i>
+                        </button>
                     </div>
                 )
             }

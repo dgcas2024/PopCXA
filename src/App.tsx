@@ -12,13 +12,15 @@ import {
     CallContactEvent,
     CXoneCase,
     CXoneMessageArray,
-    AgentLegEvent
+    AgentLegEvent,
+    AgentSessionStatus
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
     AuthWithCodeReq,
     CXoneAuth,
     AuthStatus,
+    CXoneUser
 } from "@nice-devone/auth-sdk";
 import {
     CXoneDigitalClient,
@@ -40,6 +42,8 @@ const authSetting: AuthSettings = {
 };
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
+
+const agentId = '39457397'
 
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
@@ -204,7 +208,9 @@ const App = () => {
         CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
             console.log('agentLegEvent', data);
             if (data.status === "Dialing") {
-                CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
+                //CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
+                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                console.log('agentLegEvent Dialing...', data.agentLegId)
             }
         });
     }
@@ -256,7 +262,51 @@ const App = () => {
                     break;
             }
         });
+
         cxoneAuth.restoreData();
+
+        //const initWebRTC = async () => {
+        //    const agentSettingService = await CXoneUser.instance.getAgentSettings()
+
+        //    const cxoneVoiceConnectionOptions = {
+
+        //        agentSettings: agentSettingService,
+        //        webRTCType: agentSettingService.webRTCType,
+        //        webRTCWssUrls: agentSettingService.webRTCWssUrls,
+        //        webRTCServerDomain: agentSettingService.webRTCServerDomain,
+        //        webRTCDnis: agentSettingService.webRTCDnis,
+        //        webRTCIceUrls: agentSettingService.webRTCWssUrls,
+        //    }
+
+        //    try {
+        //        CXoneVoiceClient.instance.connectServer(agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
+        //        console.log("Connected to WebRTC")
+        //    } catch (e) {
+        //        console.error('Connected to WebRTC error', e)
+        //    }
+
+        //}
+
+        //CXoneAcdClient.instance.session.onAgentSessionChange?.subscribe(
+        //    async (agentSessionChange) => {
+        //        console.log('onAgentSessionChange', agentSessionChange)
+        //        switch (agentSessionChange.status) {
+        //            case AgentSessionStatus.JOIN_SESSION_SUCCESS:
+        //            case AgentSessionStatus.SESSION_START: {
+        //                console.log("Session started successfully.....");
+        //                initWebRTC()
+        //                break;
+        //            }
+        //            case AgentSessionStatus.SESSION_END: {
+        //                console.log("Session ended successfully.....");
+        //                break;
+        //            }
+        //            case AgentSessionStatus.JOIN_SESSION_FAILURE:
+        //                console.log("Session join failed.....");
+        //                break;
+        //        }
+        //    }
+        //);
 
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code") || "";
@@ -416,6 +466,10 @@ const App = () => {
         await CXoneAcdClient.instance.contactManager.voiceService.dialPhone(dialInfo);
     };
 
+    const handleAgentLeg = async () => {
+        await CXoneAcdClient.instance.agentLegService.dialAgentLeg();
+    };
+
     if (authState !== "AUTHENTICATED") {
         if (authState === "AUTHENTICATING") {
             return (
@@ -463,6 +517,36 @@ const App = () => {
                         <div>
                             <div className="profile-info-name">{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
                             <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <div style={{
+                            display: 'flex',
+                            border: '1px solid #ccc',
+                            borderRadius: '5px',
+                            overflow: 'hidden',
+                            width: '100%',
+                            marginTop: '5px'
+                        }}>
+                            <button
+                                onClick={handleAgentLeg}
+                                style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderLeft: '1px solid rgba(255,255,255,0.2)',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    width: '100%',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                Connect AgentLeg
+                            </button>
                         </div>
                     </div>
                     <div className="agent-status">

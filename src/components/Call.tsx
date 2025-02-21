@@ -77,6 +77,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
 
     async function handleAccept() {
         await contactService.acceptContact(_currentCallContactData.contactId);
+        //await CXoneAcdClient.instance.agentLegService.dialAgentLeg()
     }
 
     async function handleReject() {

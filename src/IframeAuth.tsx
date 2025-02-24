@@ -151,7 +151,7 @@ const IframeAuth = ({ iframeText }: any) => {
             setCallContactDataArray(arr => {
                 const contactId = callContactEvent.contactId;
                 if (arr.filter(item => item.contactId === contactId).length === 0) {
-                    const processedContactIds = JSON.parse(localStorage.getItem('processedContactIds')) || [];
+                    const processedContactIds = JSON.parse(localStorage.getItem('processedContactIds') ?? '[]') || [];
                     if (!processedContactIds.includes(contactId)) {
                         processedContactIds.push(contactId);
                         localStorage.setItem('processedContactIds', JSON.stringify(processedContactIds));

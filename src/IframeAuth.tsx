@@ -149,8 +149,14 @@ const IframeAuth = ({ iframeText }: any) => {
                 }
             }
             setCallContactDataArray(arr => {
-                if (arr.filter(item => item.contactId === callContactEvent.contactId).length === 0) {
-                    window.parent?.postMessage({ dest: 'Parent', callContactEvent: callContactEvent }, '*');
+                const contactId = callContactEvent.contactId;
+                if (arr.filter(item => item.contactId === contactId).length === 0) {
+                    const processedContactIds = JSON.parse(localStorage.getItem('processedContactIds')) || [];
+                    if (!processedContactIds.includes(contactId)) {
+                        processedContactIds.push(contactId);
+                        localStorage.setItem('processedContactIds', JSON.stringify(processedContactIds));
+                        window.parent?.postMessage({ dest: 'Parent', callContactEvent: callContactEvent }, '*');
+                    }
                 }
                 return arr.filter(item => item.contactId !== callContactEvent.contactId);
             });

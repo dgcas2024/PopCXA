@@ -132,6 +132,14 @@ const IframeCases = () => {
 
     const [minusCase, setMinusCase] = useState(false);
 
+    useEffect(() => {
+        const v = localStorage.getItem('minusCase') === 'true';
+        setMinusCase(v);
+        if (agentSession != null) {
+            window.parent?.postMessage({ dest: 'Parent', minusCases: v }, '*');
+        }
+    }, [agentSession]);
+
     if (authState !== "AUTHENTICATED") {
         return (
             <div className="app">
@@ -157,7 +165,10 @@ const IframeCases = () => {
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: null }, '*');
-        setMinusCase(v => !v);
+        setMinusCase(v => {
+            localStorage.setItem('minusCase', !v);
+            return !v;
+        });
     }
 
     return (

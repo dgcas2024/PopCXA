@@ -81,6 +81,11 @@ button, select {
     text-overflow: ellipsis;
 }
 
+.preview-details.item-new > * {
+    color: #000;
+    font-weight: bold;
+}
+
 .preview-details {
     flex: 1;
 }

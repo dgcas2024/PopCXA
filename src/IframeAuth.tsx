@@ -148,7 +148,12 @@ const IframeAuth = ({ iframeText }: any) => {
                     window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCallContactItem', args: null }, '*');
                 }
             }
-            setCallContactDataArray(arr => arr.filter(item => item.contactId !== callContactEvent.contactId));
+            setCallContactDataArray(arr => {
+                if (arr.filter(item => item.contactId === callContactEvent.contactId).length === 0) {
+                    window.parent?.postMessage({ dest: 'Parent', callContactEvent: callContactEvent }, '*');
+                }
+                return arr.filter(item => item.contactId !== callContactEvent.contactId);
+            });
             if (callContactEvent.status !== 'Disconnected') {
                 setCallContactDataArray(arr => [...arr, callContactEvent]);
             }
@@ -177,7 +182,7 @@ const IframeAuth = ({ iframeText }: any) => {
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
                 console.log('Case data Array', _caseDataArray);
-                setCaseDataArray((_caseDataArray.data as Array<any>).reverse());
+                setCaseDataArray((_caseDataArray.data as Array<any>));
             }
             CXoneDigitalClient.instance.initDigitalEngagement();
             CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {

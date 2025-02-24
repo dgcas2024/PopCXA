@@ -130,6 +130,8 @@ const IframeCases = () => {
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: voiceContactData }, '*');
     }
 
+    const [minusCase, setMinusCase] = useState(false);
+
     if (authState !== "AUTHENTICATED") {
         return (
             <div className="app">
@@ -150,32 +152,49 @@ const IframeCases = () => {
         )
     }
 
+    const handleMinus = () => {
+        window.parent?.postMessage({ dest: 'Parent', minusCases: !minusCase }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCaseData', args: null }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: null }, '*');
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: null }, '*');
+        setMinusCase(v => !v);
+    }
+
     return (
         <div className={`app`}>
             <div ref={caseListDivRef} className="case-list">
-                {callContactDataArray.map((callContactData, index) => (
+                <span onClick={handleMinus} className="sidebar-collapse-btn"><i className={`fas fa-${minusCase ? 'plus' : 'minus'}`} style={{ fontSize: '16px', color: 'rgb(102, 102, 102)' }}></i></span>
+                {/*<span id="sidebar-collapse-open" className="sidebar-collapse-btn"><i className="fas fa-bars" style={{ fontSize: '16px', color: 'rgb(102, 102, 102)' }}></i></span>*/}
+                <div className="agent-profile">
+                    <div className="profile-info">
+                        <div>
+                            <div className="profile-info-name" style={{ fontWeight: 'bold' }}>{`${callContactDataArray.length} Calls, ${caseDataArray.length} Chats`}</div>
+                        </div>
+                    </div>
+                </div>
+                {!minusCase && callContactDataArray.map((callContactData, index) => (
                     <React.Fragment key={index}>
                         <div className={`case-item ${(currentCallContactData != null && currentCallContactData.contactId === callContactData.contactId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
                             <div className="case-preview">
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">
                                     <div>{callContactData.ani}</div>
-                                    <div className="preview-message">{callContactData.status}</div>
+                                    <div className="preview-message">{callContactData.status} - {callContactData.isInbound ? 'InboundCall' : 'OutboundCall'}</div>
                                     <div className="message-time" data-starttime={callContactData.startTime}>00:00:00</div>
                                 </div>
                             </div>
                         </div>
                     </React.Fragment>
                 ))}
-                {caseDataArray.map((caseData, index) => (
+                {!minusCase && caseDataArray.map((caseData, index) => (
                     <React.Fragment key={index}>
                         <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">
                                 <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
-                                <div className="preview-details">
+                                <div className={`preview-details${caseData.status.toLowerCase() === 'new' || caseData.status.toLowerCase() === 'open' ? ' item-new' : ''}`}>
                                     <div>{caseData.authorEndUserIdentity.fullName}</div>
-                                    <div className="preview-message">{caseData.preview}</div>
                                     <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
+                                    <div className="preview-message">{caseData.preview}</div>
                                 </div>
                             </div>
                         </div>

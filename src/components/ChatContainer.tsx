@@ -559,6 +559,30 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
     }
 
+    const closeButton = onClose && (
+        <button
+            onClick={onClose}
+            style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                transition: 'background-color 0.2s',
+                zIndex: 1000
+            }}
+        >
+            <i className="fas fa-times" style={{ fontSize: '16px', color: '#666' }}></i>
+        </button>
+    )
 
     return (
         <div className="chat-container">
@@ -572,6 +596,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 <div className="message-time" data-starttime={currentCallContactData.startTime}>00:00:00</div>
                             </div>
                         </div>
+                        {closeButton}
                     </div>
                     <div className="chat-messages" id="chatMessages">
                         <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData}></Call>
@@ -587,30 +612,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 <div className="message-time">#{currentCaseData?.id}:{currentCaseData?.status} {currentCaseData?.channelId ?? 'N/A'}</div>
                             </div>
                         </div>
-                        {onClose && (
-                            <button 
-                                onClick={onClose}
-                                style={{
-                                    position: 'absolute',
-                                    top: '10px',
-                                    right: '10px',
-                                    backgroundColor: 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: '8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: '50%',
-                                    width: '32px',
-                                    height: '32px',
-                                    transition: 'background-color 0.2s',
-                                    zIndex: 1000
-                                }}
-                            >
-                                <i className="fas fa-times" style={{fontSize: '16px', color: '#666'}}></i>
-                            </button>
-                        )}
+                        {closeButton}
                     </div>
                     <div ref={messageListDivRef} className="chat-messages" id="chatMessages">
                         {messageDataArray.filter(messageData => (messageData.content ?? '') !== '' || true).map((messageData, index) => {

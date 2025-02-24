@@ -75,6 +75,21 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
     const _currentCallContactData = currentCallContactData as CallContactEvent;
     const _currentVoiceContactData = currentVoiceContactData as { contactID: string, status: string, agentMuted: boolean };
 
+    if (_currentCallContactData == null || _currentVoiceContactData == null) {
+        return (
+            <div className="call-container">
+                <div className="caller-info">
+                    <div className="caller-avatar">
+                        <i className="fas fa-user fa-2x" style={{ color: '#666' }}></i>
+                    </div>
+                    <div className="caller-name">Loading...</div>
+                    <div className="call-status">Loading</div>
+                    <div className="timer">Loading</div>
+                </div>
+            </div>
+        );
+    }
+
     async function handleAccept() {
         await contactService.acceptContact(_currentCallContactData.contactId);
         //await CXoneAcdClient.instance.agentLegService.dialAgentLeg()
@@ -163,7 +178,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
                     <div className="caller-name">{_currentCallContactData.dnis}</div>
                 )}
                 {/*<div className="caller-number">{_currentCallContactData.ani}</div>*/}
-                <div className="call-status">{_currentCallContactData.status}</div>
+                <div className="call-status">{_currentCallContactData.isInbound ? 'InboundCall' : 'OutboundCall'}: {_currentCallContactData.status}</div>
                 <div className="timer" data-starttime={_currentCallContactData.startTime}>00:00:00</div>
             </div>
             {

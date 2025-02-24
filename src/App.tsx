@@ -174,8 +174,7 @@ const App = () => {
                     status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
                 }, true, true);
                 console.log('Case data Array', _caseDataArray);
-                setCaseDataArray([]);
-                (_caseDataArray.data as Array<any>).reverse().forEach(c => setCaseDataArray(arr => [c, ...arr]));
+                setCaseDataArray((_caseDataArray.data as Array<any>));
             }
             // Digital SDK consumption
             CXoneDigitalClient.instance.initDigitalEngagement();
@@ -630,7 +629,7 @@ const App = () => {
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">
                                     <div>{callContactData.ani}</div>
-                                    <div className="preview-message">{callContactData.status}</div>
+                                    <div className="preview-message">{callContactData.isInbound ? 'InboundCall' : 'OutboundCall'}: {callContactData.status}</div>
                                     <div className="message-time" data-starttime={callContactData.startTime}>00:00:00</div>
                                 </div>
                             </div>
@@ -642,10 +641,10 @@ const App = () => {
                         <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">
                                 <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
-                                <div className="preview-details">
+                                <div className={`preview-details${caseData.status.toLowerCase() === 'new' || caseData.status.toLowerCase() === 'open' ? ' item-new' : ''}`}>
                                     <div>{caseData.authorEndUserIdentity.fullName}</div>
-                                    <div className="preview-message">{caseData.preview}</div>
                                     <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
+                                    <div className="preview-message">{caseData.preview}</div>
                                 </div>
                             </div>
                         </div>

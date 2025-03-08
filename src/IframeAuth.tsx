@@ -155,41 +155,40 @@ const IframeAuth = ({ iframeText }: any) => {
                 console.log('agentLegEvent Disconnected', data.agentLegId)
             }
         });
-        CXoneAcdClient.instance.session.onAgentSessionChange?.subscribe(
-            async (agentSessionChange) => {
-                console.log('onAgentSessionChange', agentSessionChange)
-                switch (agentSessionChange.status) {
-                    //case AgentSessionStatus.JOIN_SESSION_SUCCESS:
-                    case AgentSessionStatus.SESSION_START: {
-                        console.log("Session started successfully.....");
+        CXoneAcdClient.instance.session.onAgentSessionChange?.subscribe(async (agentSessionChange) => {
+            setAgentSession(agentSessionChange);
+            console.log('onAgentSessionChange', agentSessionChange)
+            switch (agentSessionChange.status) {
+                //case AgentSessionStatus.JOIN_SESSION_SUCCESS:
+                case AgentSessionStatus.SESSION_START: {
+                    console.log("Session started successfully.....");
 
-                        const agentSettingService = await CXoneUser.instance.getAgentSettings()
-                        const cxoneVoiceConnectionOptions = {
-                            agentSettings: agentSettingService,
-                            webRTCType: agentSettingService.webRTCType,
-                            webRTCWssUrls: agentSettingService.webRTCWssUrls,
-                            webRTCServerDomain: agentSettingService.webRTCServerDomain,
-                            webRTCDnis: agentSettingService.webRTCDnis,
-                            webRTCIceUrls: [],
-                        }
-                        try {
-                            CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
-                            console.log("Connected to WebRTC")
-                        } catch (e) {
-                            console.error('Connected to WebRTC error', e)
-                        }
-                        break;
+                    const agentSettingService = await CXoneUser.instance.getAgentSettings()
+                    const cxoneVoiceConnectionOptions = {
+                        agentSettings: agentSettingService,
+                        webRTCType: agentSettingService.webRTCType,
+                        webRTCWssUrls: agentSettingService.webRTCWssUrls,
+                        webRTCServerDomain: agentSettingService.webRTCServerDomain,
+                        webRTCDnis: agentSettingService.webRTCDnis,
+                        webRTCIceUrls: [],
                     }
-                    case AgentSessionStatus.SESSION_END: {
-                        console.log("Session ended successfully.....");
-                        break;
+                    try {
+                        CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
+                        console.log("Connected to WebRTC")
+                    } catch (e) {
+                        console.error('Connected to WebRTC error', e)
                     }
-                    case AgentSessionStatus.JOIN_SESSION_FAILURE:
-                        console.log("Session join failed.....");
-                        break;
+                    break;
                 }
+                case AgentSessionStatus.SESSION_END: {
+                    console.log("Session ended successfully.....");
+                    break;
+                }
+                case AgentSessionStatus.JOIN_SESSION_FAILURE:
+                    console.log("Session join failed.....");
+                    break;
             }
-        );
+        });
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: { contactID: string, status: string, agentMuted: boolean }) => {
             voiceContactEvent = {
                 contactID: voiceContactEvent.contactID,
@@ -318,10 +317,8 @@ const IframeAuth = ({ iframeText }: any) => {
                     setupEvent();
                     const ss = async function () {
                         if (ACDSessionManager.instance.hasSessionId) {
-                            const join_ss = await CXoneAcdClient.instance.session.joinSession();
-                            console.log('[IframeAuth].[1]. Join session', join_ss);
+                            await CXoneAcdClient.instance.session.joinSession();
                             window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
-                            setAgentSession(join_ss);
                             await setup();
                         }
                     }
@@ -375,10 +372,8 @@ const IframeAuth = ({ iframeText }: any) => {
                 window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
             } catch { }
         }
-        const join_ss = await CXoneAcdClient.instance.session.joinSession();
-        console.log('[IframeAuth].[1]. Join session', join_ss);
+        await CXoneAcdClient.instance.session.joinSession();
         window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
-        setAgentSession(join_ss);
         await setup();
         voiceConnection_setIsInputDisabled(false);
         voiceConnection_setSelectedOption('phone');
@@ -386,14 +381,12 @@ const IframeAuth = ({ iframeText }: any) => {
 
     async function updateAgentState(event: any) {
         if (event.target.value === '0000') {
-            const end_ss = await CXoneAcdClient.instance.session.endSession({
+            await CXoneAcdClient.instance.session.endSession({
                 endContacts: true,
                 forceLogoff: true,
                 ignorePersonalQueue: true
             });
-            console.log('[IframeAuth].End session', end_ss)
             window.parent?.postMessage({ dest: 'Parent', sessionEnded: true }, '*');
-            setAgentSession(null);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };

@@ -12,8 +12,8 @@ import {
 } from "@nice-devone/auth-sdk";
 import {
 } from "@nice-devone/digital-sdk";
-import { } from "@nice-devone/voice-sdk";
-import { ContactService, VoiceControlService } from "@nice-devone/agent-sdk";
+import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
+import { /*ContactService,*/ VoiceControlService } from "@nice-devone/agent-sdk";
 import React from "react";
 
 interface Agent {
@@ -23,9 +23,9 @@ interface Agent {
   avatar?: string;
 }
 
-const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
+const Call = ({ currentCallContactData, currentVoiceContactData, agentLegId }: any) => {
     const voiceControlService = new VoiceControlService();
-    const contactService = new ContactService();
+    //const contactService = new ContactService();
     const [showTransferModal, setShowTransferModal] = useState(false);
     const [agents, setAgents] = useState<Agent[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -91,8 +91,8 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
     }
 
     async function handleAccept() {
-        await contactService.acceptContact(_currentCallContactData.contactId);
-        //await CXoneAcdClient.instance.agentLegService.dialAgentLeg()
+        //await contactService.acceptContact(_currentCallContactData.contactId);
+        CXoneVoiceClient.instance.connectAgentLeg(agentLegId);
     }
 
     async function handleReject() {
@@ -224,7 +224,7 @@ const Call = ({ currentCallContactData, currentVoiceContactData }: any) => {
             {
                 _currentCallContactData.ani !== "REAGENT" && _currentCallContactData.status === "Incoming" && (
                     <div className="call-actions">
-                        <button className="action-button accept" onClick={handleAccept}>
+                        <button disabled={agentLegId == null} className="action-button accept" onClick={handleAccept}>
                             <i className="fas fa-phone"></i>
                         </button>
                         <button className="action-button reject" onClick={handleReject}>

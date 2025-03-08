@@ -35,6 +35,7 @@ const IframeCaseDetail = () => {
     const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
     const [currentUserInfo, setCurrentUserInfo] = useState<any>();
     const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const [agentLegId, setAgentLegId] = useState<string | null>(null);
 
     const authTokenRef = useRef(authToken);
     const agentStatusRef = useRef(agentStatus);
@@ -47,6 +48,7 @@ const IframeCaseDetail = () => {
     const currentVoiceContactDataRef = useRef(currentVoiceContactData);
     const currentCallContactDataRef = useRef(currentCallContactData);
     const currentCaseDataRef = useRef(currentCaseData);
+    const agentLegIdRef = useRef(agentLegId);
 
     useEffect(() => {
         authTokenRef.current = authToken;
@@ -60,7 +62,8 @@ const IframeCaseDetail = () => {
         caseDataArrayRef.current = caseDataArray;
         voiceContactDataArrayRef.current = voiceContactDataArray;
         callContactDataArrayRef.current = callContactDataArray;
-    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData, agentSession, authState, caseDataArray, voiceContactDataArray, callContactDataArray, authToken, agentStatus]);
+        agentLegIdRef.current = agentLegId;
+    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData, agentSession, authState, caseDataArray, voiceContactDataArray, callContactDataArray, authToken, agentStatus, agentLegId]);
 
     useEffect(() => {
         window.parent?.postMessage({ dest: 'Iframe2', command: 'askState' }, '*');
@@ -84,6 +87,7 @@ const IframeCaseDetail = () => {
                     case 'setCurrentVoiceContactData': setCurrentVoiceContactData(evt.data.args); break;
                     case 'setCurrentCaseData': setCurrentCaseData(evt.data.args); break;
                     case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
+                    case 'setAgentLegId': setAgentLegId(evt.data.args); break;
 
                     case 'handleSetMessageData': handleSetMessageData(evt.data.args); break;
                 }
@@ -174,6 +178,7 @@ const IframeCaseDetail = () => {
     return (
         <div className={`app`}>
             <ChatContainer
+                agentLegId={agentLegId}
                 currentUserInfo={currentUserInfo}
                 currentCallContactData={currentCallContactData}
                 currentVoiceContactData={currentVoiceContactData}

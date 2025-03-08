@@ -2,7 +2,7 @@
 /*import { v4 as uuidv4 } from 'uuid';*/
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
-    ACDSessionManager,
+    ACDSessionManager, ConsoleLogAppender,
 } from "@nice-devone/core-sdk";
 import {
     AuthToken,
@@ -35,6 +35,11 @@ import './components/Call';
 import SessionConnectionSelect from "./components/SessionConnectionSelect";
 import ChatContainer, { ChatMessage } from './components/ChatContainer';
 
+import { LoggerConfig, LogLevel, Logger } from "@nice-devone/core-sdk";
+Logger.config = new LoggerConfig();
+Logger.config.setLevel(LogLevel.ERROR);
+Logger.config.addAppender(new ConsoleLogAppender())
+
 const authSetting: AuthSettings = {
     cxoneHostname: process.env.REACT_APP__CXONE_HOST_NAME || '',
     clientId: process.env.REACT_APP__CXONE_CLIENT_ID || '',
@@ -43,58 +48,72 @@ const authSetting: AuthSettings = {
 
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
-const agentId = '39457397'
-
 const App = () => {
     const cxoneAuth = CXoneAuth.instance;
     const digitalService = new DigitalService();
     const cxoneDigitalContact = new CXoneDigitalContact();
 
-    const [, setSession] = useState<any>();
+    const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
+    const [dialNumber, setDialNumber] = useState('');
 
-    const [authState, setAuthState] = useState("");
-    const [, setAuthToken] = useState("");
+    const [authToken, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
-
-    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
-    const currentUserInfoRef = useRef(currentUserInfo);
-
+    const [agentSession, setAgentSession] = useState<any>();
+    const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
-    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
-    const callContactDataArrayRef = useRef(callContactDataArray);
-    const currentCallContactDataRef = useRef(currentCallContactData);
-
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
-    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
-    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
-    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
-
     const [caseDataArray, setCaseDataArray] = useState<Array<any>>([]);
     const [currentCaseData, setCurrentCaseData] = useState<CXoneCase | null>(null);
+    const [currentVoiceContactData, setCurrentVoiceContactData] = useState<{ contactID: string, status: string, agentMuted: boolean } | null>(null);
+    const [currentUserInfo, setCurrentUserInfo] = useState<any>();
+    const [currentCallContactData, setCurrentCallContactData] = useState<CallContactEvent | null>(null);
+    const [agentLegId, setAgentLegId] = useState<string | null>(null);
+
+    const authTokenRef = useRef(authToken);
+    const agentStatusRef = useRef(agentStatus);
+    const agentSessionRef = useRef(agentSession);
+    const authStateRef = useRef(authState);
+    const caseDataArrayRef = useRef(caseDataArray);
+    const voiceContactDataArrayRef = useRef(voiceContactDataArray);
+    const callContactDataArrayRef = useRef(callContactDataArray);
+    const currentUserInfoRef = useRef(currentUserInfo);
+    const currentVoiceContactDataRef = useRef(currentVoiceContactData);
+    const currentCallContactDataRef = useRef(currentCallContactData);
     const currentCaseDataRef = useRef(currentCaseData);
 
-    const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
+    useEffect(() => {
+        authTokenRef.current = authToken;
+        agentStatusRef.current = agentStatus;
+        currentUserInfoRef.current = currentUserInfo;
+        currentCallContactDataRef.current = currentCallContactData;
+        currentVoiceContactDataRef.current = currentVoiceContactData;
+        currentCaseDataRef.current = currentCaseData;
+        agentSessionRef.current = agentSession;
+        authStateRef.current = authState;
+        caseDataArrayRef.current = caseDataArray;
+        voiceContactDataArrayRef.current = voiceContactDataArray;
+        callContactDataArrayRef.current = callContactDataArray;
+    }, [currentCallContactData, currentUserInfo, currentVoiceContactData, currentCaseData, agentSession, authState, caseDataArray, voiceContactDataArray, callContactDataArray, authToken, agentStatus]);
 
     const [messageDataArray, setMessageDataArray] = useState<Array<ChatMessage>>([]);
 
-
-    useEffect(() => {
-        currentUserInfoRef.current = currentUserInfo;
-        callContactDataArrayRef.current = callContactDataArray;
-        currentCallContactDataRef.current = currentCallContactData;
-        voiceContactDataArrayRef.current = voiceContactDataArray;
-        currentVoiceContactDataRef.current = currentVoiceContactData;
-        currentCaseDataRef.current = currentCaseData;
-
-    }, [callContactDataArray, currentCallContactData, currentCaseData, currentUserInfo, currentVoiceContactData, voiceContactDataArray]);
-
     const appDivRef = useRef<HTMLDivElement>(null);
-
     const caseListDivRef = useRef<HTMLDivElement>(null);
 
-    const [dialNumber, setDialNumber] = useState('+84328523152');
+    const refreshCaseArray = async function (cuser: any) {
+        const _caseDataArray = await digitalService.getDigitalContactSearchResult({
+            sortingType: SortingType.DESCENDING,
+            sorting: 'createdAt',
+            inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
+            status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
+        }, true, true);
+        console.log('Case data Array', _caseDataArray);
+        setCaseDataArray((_caseDataArray.data as Array<any>));
+    }
 
-    const setupAcd = async function () {
+    const setupEvent = function () {
+        // ACD SDK consumption
+        CXoneAcdClient.instance.initAcdEngagement();
         CXoneAcdClient.instance.session.agentStateService.agentStateSubject.subscribe((agentState: AgentStateEvent) => {
             //const serverTime = DateTimeUtilService.getServerTimestamp();
             //const originStartTime = new Date(agentState.agentStateData.StartTime).getTime();
@@ -103,7 +122,54 @@ const App = () => {
             setAgentStatus(agentState);
             console.log('agentState', agentState);
         });
+        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
+            console.log('agentLegEvent', data);
+            if (data.status === "Dialing") {
+                //check outbound => auto connectAgentLeg
+                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                setAgentLegId(data.agentLegId);
+                console.log('agentLegEvent Dialing...', data.agentLegId)
+            }
+            if (data.status === "Disconnected") {
+                setAgentLegId(null);
+                console.log('agentLegEvent Disconnected', data.agentLegId)
+            }
+        });
+        CXoneAcdClient.instance.session.onAgentSessionChange?.subscribe(
+            async (agentSessionChange) => {
+                console.log('onAgentSessionChange', agentSessionChange)
+                switch (agentSessionChange.status) {
+                    //case AgentSessionStatus.JOIN_SESSION_SUCCESS:
+                    case AgentSessionStatus.SESSION_START: {
+                        console.log("Session started successfully.....");
 
+                        const agentSettingService = await CXoneUser.instance.getAgentSettings()
+                        const cxoneVoiceConnectionOptions = {
+                            agentSettings: agentSettingService,
+                            webRTCType: agentSettingService.webRTCType,
+                            webRTCWssUrls: agentSettingService.webRTCWssUrls,
+                            webRTCServerDomain: agentSettingService.webRTCServerDomain,
+                            webRTCDnis: agentSettingService.webRTCDnis,
+                            webRTCIceUrls: [],
+                        }
+                        try {
+                            CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
+                            console.log("Connected to WebRTC")
+                        } catch (e) {
+                            console.error('Connected to WebRTC error', e)
+                        }
+                        break;
+                    }
+                    case AgentSessionStatus.SESSION_END: {
+                        console.log("Session ended successfully.....");
+                        break;
+                    }
+                    case AgentSessionStatus.JOIN_SESSION_FAILURE:
+                        console.log("Session join failed.....");
+                        break;
+                }
+            }
+        );
         CXoneAcdClient.instance.contactManager.voiceContactUpdateEvent.subscribe((voiceContactEvent: { contactID: string, status: string, agentMuted: boolean }) => {
             voiceContactEvent = {
                 contactID: voiceContactEvent.contactID,
@@ -129,7 +195,6 @@ const App = () => {
                 setVoiceContactDataArray(arr => [...arr, voiceContactEvent]);
             }
         });
-
         ACDSessionManager.instance.callContactEventSubject.subscribe((callContactEvent: CallContactEvent) => {
             console.log("callContactEvent", callContactEvent);
 
@@ -151,6 +216,33 @@ const App = () => {
             }
         });
 
+        // Digital SDK consumption
+        CXoneDigitalClient.instance.initDigitalEngagement();
+        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
+            console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
+        });
+        CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
+            console.log("onDigitalContactEvent", digitalContactEvent);
+            refreshCaseArray(currentUserInfoRef.current);
+            if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
+                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                    setCurrentCaseData(digitalContactEvent.case);
+                    if (digitalContactEvent.case.status === 'closed') {
+                        selectCaseItem(null);
+                    }
+                } else {
+                    if (digitalContactEvent.isCaseAssigned) {
+                        setMessageDataArray([]);
+                        handleSetMessageData(digitalContactEvent.messages);
+                    } else {
+                        selectCaseItem(null);
+                    }
+                }
+            }
+        });
+    }
+
+    const setup = async function () {
         const _unavailableCodeArray = await CXoneAcdClient.instance.session.agentStateService.getTeamUnavailableCodes();
         if (Array.isArray(_unavailableCodeArray)) {
             _unavailableCodeArray.push({
@@ -160,58 +252,10 @@ const App = () => {
             } as UnavailableCode);
             setUnavailableCodeArray(_unavailableCodeArray);
         }
-
         const cuser = await digitalService.getDigitalUserDetails() as any;
         setCurrentUserInfo(cuser);
         console.log(cuser);
-
-        const digital = async function () {
-            const refreshCaseArray = async function () {
-                const _caseDataArray = await digitalService.getDigitalContactSearchResult({
-                    sortingType: SortingType.DESCENDING,
-                    sorting: 'createdAt',
-                    inboxAssigneeAgentId: [{ id: cuser.user.agentId, name: cuser.user.nickname }],
-                    status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
-                }, true, true);
-                console.log('Case data Array', _caseDataArray);
-                setCaseDataArray((_caseDataArray.data as Array<any>));
-            }
-            // Digital SDK consumption
-            CXoneDigitalClient.instance.initDigitalEngagement();
-            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactNewMessageEvent?.subscribe((digitalContactNewMessageEvent) => {
-                console.log("onDigitalContactNewMessageEvent", digitalContactNewMessageEvent);
-            });
-            CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
-                console.log("onDigitalContactEvent", digitalContactEvent);
-                refreshCaseArray();
-                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
-                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                        setCurrentCaseData(digitalContactEvent.case);
-                        if (digitalContactEvent.case.status === 'closed') {
-                            selectCaseItem(null);
-                        }
-                    } else {
-                        if (digitalContactEvent.isCaseAssigned) {
-                            setMessageDataArray([]);
-                            handleSetMessageData(digitalContactEvent.messages);
-                        } else {
-                            selectCaseItem(null);
-                        }
-                    }
-                }
-            });
-            await refreshCaseArray();
-        }
-        await digital();
-
-        CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
-            console.log('agentLegEvent', data);
-            if (data.status === "Dialing") {
-                //CXoneVoiceClient.instance.triggerAutoAccept(data.agentLegId);
-                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
-                console.log('agentLegEvent Dialing...', data.agentLegId)
-            }
-        });
+        await refreshCaseArray(cuser);
     }
 
     useEffect(() => {
@@ -236,16 +280,16 @@ const App = () => {
                     }
                     setAuthToken((data.response as AuthToken).accessToken);
 
-                    // ACD SDK consumption
-                    const acd = async function () {
+                    setupEvent();
+                    const ss = async function () {
                         if (ACDSessionManager.instance.hasSessionId) {
-                            CXoneAcdClient.instance.initAcdEngagement();
                             const join_ss = await CXoneAcdClient.instance.session.joinSession();
                             console.log('Join session', join_ss);
-                            await setupAcd();
+                            setAgentSession(join_ss);
+                            await setup();
                         }
                     }
-                    acd();
+                    ss();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -261,51 +305,7 @@ const App = () => {
                     break;
             }
         });
-
         cxoneAuth.restoreData();
-
-        //const initWebRTC = async () => {
-        //    const agentSettingService = await CXoneUser.instance.getAgentSettings()
-
-        //    const cxoneVoiceConnectionOptions = {
-
-        //        agentSettings: agentSettingService,
-        //        webRTCType: agentSettingService.webRTCType,
-        //        webRTCWssUrls: agentSettingService.webRTCWssUrls,
-        //        webRTCServerDomain: agentSettingService.webRTCServerDomain,
-        //        webRTCDnis: agentSettingService.webRTCDnis,
-        //        webRTCIceUrls: agentSettingService.webRTCWssUrls,
-        //    }
-
-        //    try {
-        //        CXoneVoiceClient.instance.connectServer(agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
-        //        console.log("Connected to WebRTC")
-        //    } catch (e) {
-        //        console.error('Connected to WebRTC error', e)
-        //    }
-
-        //}
-
-        //CXoneAcdClient.instance.session.onAgentSessionChange?.subscribe(
-        //    async (agentSessionChange) => {
-        //        console.log('onAgentSessionChange', agentSessionChange)
-        //        switch (agentSessionChange.status) {
-        //            case AgentSessionStatus.JOIN_SESSION_SUCCESS:
-        //            case AgentSessionStatus.SESSION_START: {
-        //                console.log("Session started successfully.....");
-        //                initWebRTC()
-        //                break;
-        //            }
-        //            case AgentSessionStatus.SESSION_END: {
-        //                console.log("Session ended successfully.....");
-        //                break;
-        //            }
-        //            case AgentSessionStatus.JOIN_SESSION_FAILURE:
-        //                console.log("Session join failed.....");
-        //                break;
-        //        }
-        //    }
-        //);
 
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code") || "";
@@ -394,7 +394,7 @@ const App = () => {
                 ignorePersonalQueue: true
             });
             console.log('End session', end_ss)
-            setSession(end_ss);
+            setAgentSession(end_ss);
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };
@@ -492,7 +492,7 @@ const App = () => {
     if (!ACDSessionManager.instance.hasSessionId) {
         return (
             <div className="app" style={{ display: 'block', height: 'auto' }}>
-                <SessionConnectionSelect setupAcd={setupAcd}></SessionConnectionSelect>
+                <SessionConnectionSelect setup={setup}></SessionConnectionSelect>
             </div>
         )
     }
@@ -527,25 +527,25 @@ const App = () => {
                             width: '100%',
                             marginTop: '5px'
                         }}>
-                            <button
-                                onClick={handleAgentLeg}
-                                style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderLeft: '1px solid rgba(255,255,255,0.2)',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    width: '100%',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                Connect AgentLeg
-                            </button>
+                            {/*<button*/}
+                            {/*    onClick={handleAgentLeg}*/}
+                            {/*    style={{*/}
+                            {/*        padding: '6px 12px',*/}
+                            {/*        backgroundColor: '#4CAF50',*/}
+                            {/*        color: 'white',*/}
+                            {/*        border: 'none',*/}
+                            {/*        borderLeft: '1px solid rgba(255,255,255,0.2)',*/}
+                            {/*        cursor: 'pointer',*/}
+                            {/*        fontSize: '14px',*/}
+                            {/*        display: 'flex',*/}
+                            {/*        alignItems: 'center',*/}
+                            {/*        gap: '5px',*/}
+                            {/*        width: '100%',*/}
+                            {/*        justifyContent: 'center'*/}
+                            {/*    }}*/}
+                            {/*>*/}
+                            {/*    Connect AgentLeg*/}
+                            {/*</button>*/}
                         </div>
                     </div>
                     <div className="agent-status">
@@ -651,7 +651,8 @@ const App = () => {
                     </React.Fragment>
                 ))}
             </div>
-            <ChatContainer 
+            <ChatContainer
+                agentLegId={agentLegId}
                 currentUserInfo={currentUserInfo}
                 currentCallContactData={currentCallContactData}
                 currentVoiceContactData={currentVoiceContactData}

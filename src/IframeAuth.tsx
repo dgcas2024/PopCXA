@@ -68,6 +68,8 @@ const IframeAuth = ({ iframeText }: any) => {
     const currentCaseDataRef = useRef(currentCaseData);
     const agentLegIdRef = useRef(agentLegId);
 
+    const audioWebRTCRef = useRef<HTMLAudioElement>(null);
+
     const refreshCaseArray = async function (cuser: any) {
         const _caseDataArray = await digitalService.getDigitalContactSearchResult({
             sortingType: SortingType.DESCENDING,
@@ -176,8 +178,12 @@ const IframeAuth = ({ iframeText }: any) => {
                         webRTCIceUrls: [],
                     }
                     try {
-                        CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, new Audio("<audio ref={audio_tag} id=\"audio\" controls autoPlay/>"), "CCS NiceCXone CTI Toolbar")
-                        console.log("Connected to WebRTC")
+                        if (audioWebRTCRef.current) {
+                            CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, audioWebRTCRef.current, "Poptech CXAgent")
+                            console.log("Connected to WebRTC");
+                        } else {
+                            alert('Connected to WebRTC error: not found audio tag');
+                        }
                     } catch (e) {
                         console.error('Connected to WebRTC error', e)
                     }
@@ -605,6 +611,7 @@ const IframeAuth = ({ iframeText }: any) => {
                         borderRadius: '5px',
                         overflow: 'hidden' 
                     }}>
+                        <audio hidden={true} ref={audioWebRTCRef} id="audio" controls autoPlay />
                         <input
                             type="text"
                             value={dialNumber}

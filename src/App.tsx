@@ -124,9 +124,10 @@ const App = () => {
         });
         CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
             console.log('agentLegEvent', data);
-            if (data.status === "Dialing") {
-                //check outbound => auto connectAgentLeg
-                //CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+            if (data.status?.toLowerCase() === "dialing") {
+                if (callContactDataArrayRef.current.filter(x => x.status?.toLowerCase() === "incoming").length === 0) {
+                    CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                }
                 setAgentLegId(data.agentLegId);
                 console.log('agentLegEvent Dialing...', data.agentLegId)
             }

@@ -7,7 +7,8 @@ import {
     CallContactEvent,
     CXoneMessageArray,
     CXoneCase,
-    AgentStateEvent
+    AgentStateEvent,
+    AgentSessionResponse
 } from "@nice-devone/common-sdk";
 import {
 } from "@nice-devone/auth-sdk";
@@ -26,7 +27,7 @@ const IframeCaseDetail = () => {
 
     const [authToken, ] = useState("");
     const [agentStatus, ] = useState<AgentStateEvent>({} as AgentStateEvent);
-    const [agentSession, setAgentSession] = useState<any>();
+    const [agentSession, setAgentSession] = useState<AgentSessionResponse | null>(null);
     const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
@@ -165,7 +166,7 @@ const IframeCaseDetail = () => {
         )
     }
 
-    if (!agentSession) {
+    if (!agentSession || agentSession.status?.toLowerCase() === 'SessionEnd'.toLowerCase()) {
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>

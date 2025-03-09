@@ -5,7 +5,8 @@ import {
 import {
     CallContactEvent,
     CXoneCase,
-    AgentStateEvent
+    AgentStateEvent,
+    AgentSessionResponse
 } from "@nice-devone/common-sdk";
 import {
 } from "@nice-devone/auth-sdk";
@@ -25,7 +26,7 @@ const IframeCases = () => {
 
     const [authToken, ] = useState("");
     const [agentStatus, ] = useState<AgentStateEvent>({} as AgentStateEvent);
-    const [agentSession, setAgentSession] = useState<any>();
+    const [agentSession, setAgentSession] = useState<AgentSessionResponse | null>(null);
     const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);
@@ -145,7 +146,7 @@ const IframeCases = () => {
     useEffect(() => {
         const _minusCase = localStorage.getItem('minusCase') === 'true';
         setMinusCase(_minusCase);
-        if (agentSession != null) {
+        if (agentSession != null && agentSession.status?.toLowerCase() !== 'SessionEnd'.toLowerCase()) {
             window.parent?.postMessage({ dest: 'Parent', minusCases: _minusCase }, '*');
         }
     }, [agentSession]);
@@ -160,7 +161,7 @@ const IframeCases = () => {
         )
     }
 
-    if (!agentSession) {
+    if (!agentSession || agentSession.status?.toLowerCase() === 'SessionEnd'.toLowerCase()) {
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#fff' }}>

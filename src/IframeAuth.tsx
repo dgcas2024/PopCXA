@@ -11,7 +11,8 @@ import {
     CallContactEvent,
     CXoneCase,
     SortingType,
-    AgentSessionStatus
+    AgentSessionStatus,
+    AgentSessionResponse
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,
@@ -43,7 +44,7 @@ const IframeAuth = ({ iframeText }: any) => {
 
     const [authToken, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
-    const [agentSession, setAgentSession] = useState<any>();
+    const [agentSession, setAgentSession] = useState<AgentSessionResponse | null>();
     const [authState, setAuthState] = useState("");
     const [callContactDataArray, setCallContactDataArray] = useState<Array<CallContactEvent>>([]);
     const [voiceContactDataArray, setVoiceContactDataArray] = useState<Array<{ contactID: string, status: string, agentMuted: boolean }>>([]);

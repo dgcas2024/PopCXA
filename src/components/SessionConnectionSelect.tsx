@@ -84,15 +84,13 @@ function SessionConnectionSelect({ setup }: any) {
         if (!ACDSessionManager.instance.hasSessionId) {
             CXoneAcdClient.instance.initAcdEngagement();
             try {
-                const start_ss = await CXoneAcdClient.instance.session.startSession({
+                await CXoneAcdClient.instance.session.startSession({
                     stationId: selectedOption === 'station' ? inputValue : '',
                     stationPhoneNumber: selectedOption === 'phone' ? inputValue : selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
-                console.log('Start session', start_ss);
             } catch { }
         }
-        const join_ss = await CXoneAcdClient.instance.session.joinSession();
-        console.log('Join session', join_ss);
+        await CXoneAcdClient.instance.session.joinSession();
         await setup();
     }
 

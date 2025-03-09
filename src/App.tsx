@@ -280,13 +280,10 @@ const App = () => {
                     setAuthToken((data.response as AuthToken).accessToken);
 
                     setupEvent();
-                    const ss = async function () {
-                        if (ACDSessionManager.instance.hasSessionId) {
-                            await CXoneAcdClient.instance.session.joinSession();
-                            await setup();
-                        }
+                    setup();
+                    if (ACDSessionManager.instance.hasSessionId) {
+                        CXoneAcdClient.instance.session.joinSession();
                     }
-                    ss();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -513,36 +510,36 @@ const App = () => {
                             <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                        <div style={{
-                            display: 'flex',
-                            border: '1px solid #ccc',
-                            borderRadius: '5px',
-                            overflow: 'hidden',
-                            width: '100%',
-                            marginTop: '5px'
-                        }}>
-                            {/*<button*/}
-                            {/*    onClick={handleAgentLeg}*/}
-                            {/*    style={{*/}
-                            {/*        padding: '6px 12px',*/}
-                            {/*        backgroundColor: '#4CAF50',*/}
-                            {/*        color: 'white',*/}
-                            {/*        border: 'none',*/}
-                            {/*        borderLeft: '1px solid rgba(255,255,255,0.2)',*/}
-                            {/*        cursor: 'pointer',*/}
-                            {/*        fontSize: '14px',*/}
-                            {/*        display: 'flex',*/}
-                            {/*        alignItems: 'center',*/}
-                            {/*        gap: '5px',*/}
-                            {/*        width: '100%',*/}
-                            {/*        justifyContent: 'center'*/}
-                            {/*    }}*/}
-                            {/*>*/}
-                            {/*    Connect AgentLeg*/}
-                            {/*</button>*/}
-                        </div>
-                    </div>
+                    {/*<div style={{ display: 'flex', gap: '5px' }}>*/}
+                    {/*    <div style={{*/}
+                    {/*        display: 'flex',*/}
+                    {/*        border: '1px solid #ccc',*/}
+                    {/*        borderRadius: '5px',*/}
+                    {/*        overflow: 'hidden',*/}
+                    {/*        width: '100%',*/}
+                    {/*        marginTop: '5px'*/}
+                    {/*    }}>*/}
+                    {/*        <button*/}
+                    {/*            onClick={handleAgentLeg}*/}
+                    {/*            style={{*/}
+                    {/*                padding: '6px 12px',*/}
+                    {/*                backgroundColor: '#4CAF50',*/}
+                    {/*                color: 'white',*/}
+                    {/*                border: 'none',*/}
+                    {/*                borderLeft: '1px solid rgba(255,255,255,0.2)',*/}
+                    {/*                cursor: 'pointer',*/}
+                    {/*                fontSize: '14px',*/}
+                    {/*                display: 'flex',*/}
+                    {/*                alignItems: 'center',*/}
+                    {/*                gap: '5px',*/}
+                    {/*                width: '100%',*/}
+                    {/*                justifyContent: 'center'*/}
+                    {/*            }}*/}
+                    {/*        >*/}
+                    {/*            Connect AgentLeg*/}
+                    {/*        </button>*/}
+                    {/*    </div>*/}
+                    {/*</div>*/}
                     <div className="agent-status">
                         <select className="status-selector" onChange={updateAgentState} value={JSON.stringify(currentState)} style={{
                             borderRadius: '5px', fontSize: '14px', outline: 'none',

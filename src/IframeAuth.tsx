@@ -161,6 +161,7 @@ const IframeAuth = ({ iframeText }: any) => {
             switch (agentSessionChange.status) {
                 //case AgentSessionStatus.JOIN_SESSION_SUCCESS:
                 case AgentSessionStatus.SESSION_START: {
+                    window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
                     console.log("Session started successfully.....");
 
                     const agentSettingService = await CXoneUser.instance.getAgentSettings()
@@ -181,10 +182,12 @@ const IframeAuth = ({ iframeText }: any) => {
                     break;
                 }
                 case AgentSessionStatus.SESSION_END: {
+                    window.parent?.postMessage({ dest: 'Parent', sessionEnded: true }, '*');
                     console.log("Session ended successfully.....");
                     break;
                 }
                 case AgentSessionStatus.JOIN_SESSION_FAILURE:
+                    window.parent?.postMessage({ dest: 'Parent', sessionEnded: true }, '*');
                     console.log("Session join failed.....");
                     break;
             }
@@ -315,14 +318,10 @@ const IframeAuth = ({ iframeText }: any) => {
                     setAuthToken((data.response as AuthToken).accessToken);
 
                     setupEvent();
-                    const ss = async function () {
-                        if (ACDSessionManager.instance.hasSessionId) {
-                            await CXoneAcdClient.instance.session.joinSession();
-                            window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
-                            await setup();
-                        }
+                    setup();
+                    if (ACDSessionManager.instance.hasSessionId) {
+                        CXoneAcdClient.instance.session.joinSession();
                     }
-                    ss();
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -364,16 +363,13 @@ const IframeAuth = ({ iframeText }: any) => {
         if (!ACDSessionManager.instance.hasSessionId) {
             CXoneAcdClient.instance.initAcdEngagement();
             try {
-                const start_ss = await CXoneAcdClient.instance.session.startSession({
+                await CXoneAcdClient.instance.session.startSession({
                     stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',
                     stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
-                console.log('[IframeAuth].Start session', start_ss);
-                window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
             } catch { }
         }
         await CXoneAcdClient.instance.session.joinSession();
-        window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
         await setup();
         voiceConnection_setIsInputDisabled(false);
         voiceConnection_setSelectedOption('phone');
@@ -381,12 +377,11 @@ const IframeAuth = ({ iframeText }: any) => {
 
     async function updateAgentState(event: any) {
         if (event.target.value === '0000') {
-            await CXoneAcdClient.instance.session.endSession({
+            CXoneAcdClient.instance.session.endSession({
                 endContacts: true,
                 forceLogoff: true,
                 ignorePersonalQueue: true
             });
-            window.parent?.postMessage({ dest: 'Parent', sessionEnded: true }, '*');
             return;
         }
         const state = JSON.parse(event.target.value) as { state: string, reason: string };

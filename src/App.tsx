@@ -640,9 +640,9 @@ const App = () => {
                     <React.Fragment key={index}>
                         <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
                             <div className="case-preview">
-                                <img src={caseData.authorEndUserIdentity.image} alt="" className="avatar"></img>
+                                <img src={caseData.authorEndUserIdentity?.image ?? 'N/A'} alt="" className="avatar"></img>
                                 <div className={`preview-details${caseData.status.toLowerCase() === 'new' || caseData.status.toLowerCase() === 'open' ? ' item-new' : ''}`}>
-                                    <div>{caseData.authorEndUserIdentity.fullName}</div>
+                                    <div>{caseData.authorEndUserIdentity?.fullName ?? 'N/A'}</div>
                                     <div className="message-time time-auto-update-off" data-time={caseData.id}>#{caseData.id}: {`${caseData.channelId}`}</div>
                                     <div className="preview-message">{caseData.preview}</div>
                                 </div>

@@ -127,9 +127,11 @@ const App = () => {
         CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
             console.log('agentLegEvent', data);
             if (data.status?.toLowerCase() === "dialing") {
-                if (callContactDataArrayRef.current.filter(x => x.status?.toLowerCase() === "incoming").length === 0) {
-                    CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
-                }
+                setTimeout(() => {
+                    if (callContactDataArrayRef.current.filter(x => x.status?.toLowerCase() === "incoming").length === 0) {
+                        CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                    }
+                }, 500);
                 setAgentLegId(data.agentLegId);
                 console.log('agentLegEvent Dialing...', data.agentLegId)
             }
@@ -654,6 +656,7 @@ const App = () => {
                 ))}
             </div>
             <ChatContainer
+                connectAgentLeg={(agentLegId) => { CXoneVoiceClient.instance.connectAgentLeg(agentLegId); } }
                 agentLegId={agentLegId}
                 currentUserInfo={currentUserInfo}
                 currentCallContactData={currentCallContactData}

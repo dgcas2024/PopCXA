@@ -23,7 +23,7 @@ interface Agent {
   avatar?: string;
 }
 
-const Call = ({ currentCallContactData, currentVoiceContactData, agentLegId }: any) => {
+const Call = ({ currentCallContactData, currentVoiceContactData, agentLegId, connectAgentLeg }: any) => {
     const voiceControlService = new VoiceControlService();
     //const contactService = new ContactService();
     const [showTransferModal, setShowTransferModal] = useState(false);
@@ -92,7 +92,11 @@ const Call = ({ currentCallContactData, currentVoiceContactData, agentLegId }: a
 
     async function handleAccept() {
         //await contactService.acceptContact(_currentCallContactData.contactId);
-        CXoneVoiceClient.instance.connectAgentLeg(agentLegId);
+        if (connectAgentLeg) {
+            connectAgentLeg(agentLegId);
+        } else {
+            CXoneVoiceClient.instance.connectAgentLeg(agentLegId)
+        }
     }
 
     async function handleReject() {

@@ -39,6 +39,7 @@ export interface ChatMessage {
 }
 
 interface ChatContainerProps {
+    connectAgentLeg: (agentLegId: string) => void;
     agentLegId: string | null;
     currentUserInfo: any;
     currentCallContactData: CallContactEvent | null;
@@ -59,6 +60,7 @@ let mediaRecorder: any = null;
 let audioChunks: any = [];
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
+    connectAgentLeg,
     agentLegId,
     currentUserInfo,
     currentCallContactData,
@@ -601,7 +603,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         {closeButton}
                     </div>
                     <div className="chat-messages" id="chatMessages">
-                        <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData} agentLegId={agentLegId}></Call>
+                        <Call currentCallContactData={currentCallContactData} currentVoiceContactData={currentVoiceContactData} agentLegId={agentLegId} connectAgentLeg={connectAgentLeg}></Call>
                     </div>
                 </React.Fragment>
             ) : (

@@ -176,9 +176,14 @@ const IframeCaseDetail = () => {
         )
     }
 
+    const connectAgentLeg = (agentLegId: string) => {
+        window.parent?.postMessage({ dest: 'Iframe2', command: 'connectAgentLeg', args: agentLegId }, '*');
+    }
+
     return (
         <div className={`app`}>
             <ChatContainer
+                connectAgentLeg={connectAgentLeg}
                 agentLegId={agentLegId}
                 currentUserInfo={currentUserInfo}
                 currentCallContactData={currentCallContactData}

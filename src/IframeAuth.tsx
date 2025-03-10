@@ -81,6 +81,10 @@ const IframeAuth = ({ iframeText }: any) => {
         setCaseDataArray((_caseDataArray.data as Array<any>));
     }
 
+    const connectAgentLeg = (agentLegId: string) => {
+        CXoneVoiceClient.instance.connectAgentLeg(agentLegId);
+    }
+
     useEffect(() => {
         authTokenRef.current = authToken;
         agentStatusRef.current = agentStatus;
@@ -104,6 +108,7 @@ const IframeAuth = ({ iframeText }: any) => {
                     case 'setCurrentVoiceContactData': setCurrentVoiceContactData(evt.data.args); break;
                     case 'setCurrentCaseData': setCurrentCaseData(evt.data.args); break;
                     case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
+                    case 'connectAgentLeg': connectAgentLeg(evt.data.args); break;
                     case 'askState': {
                         window.parent?.postMessage({ dest: 'Iframe2', command: 'setAgentSession', args: agentSessionRef.current }, '*')
                         window.parent?.postMessage({ dest: 'Iframe2', command: 'setAuthState', args: authStateRef.current }, '*');
@@ -148,9 +153,11 @@ const IframeAuth = ({ iframeText }: any) => {
         CXoneAcdClient.instance.session.agentLegEvent.subscribe((data: AgentLegEvent) => {
             console.log('agentLegEvent', data);
             if (data.status?.toLowerCase() === "dialing") {
-                if (callContactDataArrayRef.current.filter(x => x.status?.toLowerCase() === "incoming").length === 0) {
-                    CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
-                }
+                setTimeout(() => {
+                    if (callContactDataArrayRef.current.filter(x => x.status?.toLowerCase() === "incoming").length === 0) {
+                        CXoneVoiceClient.instance.connectAgentLeg(data.agentLegId);
+                    }
+                }, 500);
                 setAgentLegId(data.agentLegId);
                 console.log('agentLegEvent Dialing...', data.agentLegId)
             }

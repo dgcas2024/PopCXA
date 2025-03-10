@@ -88,7 +88,11 @@ function SessionConnectionSelect({ setup }: any) {
                     stationId: selectedOption === 'station' ? inputValue : '',
                     stationPhoneNumber: selectedOption === 'phone' ? inputValue : selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
-            } catch { }
+            } catch {
+                try {
+                    CXoneAcdClient.instance.session.joinSession();
+                } catch { }
+            }
         }
         await setup();
     }

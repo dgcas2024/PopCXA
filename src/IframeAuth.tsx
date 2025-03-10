@@ -377,7 +377,11 @@ const IframeAuth = ({ iframeText }: any) => {
                     stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',
                     stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
                 });
-            } catch { }
+            } catch {
+                try {
+                    CXoneAcdClient.instance.session.joinSession();
+                } catch { }
+            }
         }
         await setup();
         voiceConnection_setIsInputDisabled(false);

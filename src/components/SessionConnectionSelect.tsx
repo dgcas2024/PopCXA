@@ -90,7 +90,6 @@ function SessionConnectionSelect({ setup }: any) {
                 });
             } catch { }
         }
-        await CXoneAcdClient.instance.session.joinSession();
         await setup();
     }
 

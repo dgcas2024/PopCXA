@@ -289,7 +289,9 @@ const App = () => {
                     setupEvent();
                     setup();
                     if (ACDSessionManager.instance.hasSessionId) {
-                        CXoneAcdClient.instance.session.joinSession();
+                        try {
+                            CXoneAcdClient.instance.session.joinSession();
+                        } catch { }
                     }
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:

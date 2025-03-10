@@ -328,7 +328,9 @@ const IframeAuth = ({ iframeText }: any) => {
                     setupEvent();
                     setup();
                     if (ACDSessionManager.instance.hasSessionId) {
-                        CXoneAcdClient.instance.session.joinSession();
+                        try {
+                            CXoneAcdClient.instance.session.joinSession();
+                        } catch { }
                     }
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
@@ -377,7 +379,6 @@ const IframeAuth = ({ iframeText }: any) => {
                 });
             } catch { }
         }
-        await CXoneAcdClient.instance.session.joinSession();
         await setup();
         voiceConnection_setIsInputDisabled(false);
         voiceConnection_setSelectedOption('phone');

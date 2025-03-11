@@ -130,7 +130,7 @@ const IframeCases = () => {
             selectCaseItem(caseData, ignoreSelectOther, true);
         } else {
             const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0);
-            if (caseData) {
+            if (callContactData) {
                 selectCallContactItem(callContactData, ignoreSelectOther, true);
             } else {
                 return false;

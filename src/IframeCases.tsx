@@ -22,6 +22,7 @@ import './components/Call';
 const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png';
 
 const IframeCases = () => {
+    const [isFirst, setIsFirst] = useState(true);
     const cxoneDigitalContact = new CXoneDigitalContact();
 
     const [authToken, ] = useState("");
@@ -81,7 +82,18 @@ const IframeCases = () => {
         if (caseListDivRef?.current) {
             caseListDivRef.current.scrollTop = 0;
         }
-    }, [caseDataArray]);
+
+        if (isFirst) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const _selectContactId = searchParams.get("selectContactId") || "";
+            if (_selectContactId) {
+                if (selectContactId(_selectContactId)) {
+                    setIsFirst(false);
+                }
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [caseDataArray, callContactDataArray]);
 
     useEffect(() => {
         console.log('[IframeCases].useEffect...');
@@ -101,6 +113,7 @@ const IframeCases = () => {
 
                     case 'selectCaseItem': selectCaseItem(evt.data.args); break;
                     case 'selectCallContactItem': selectCallContactItem(evt.data.args); break;
+                    case 'selectContactId': selectContactId(evt.data.args); break;
                 }
             }
             if (evt.data.hideCaseDetail) {
@@ -111,7 +124,22 @@ const IframeCases = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false) {
+    function selectContactId(contactId: string, ignoreSelectOther = false) {
+        const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0);
+        if (caseData) {
+            selectCaseItem(caseData, ignoreSelectOther, true);
+        } else {
+            const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0);
+            if (caseData) {
+                selectCallContactItem(callContactData, ignoreSelectOther, true);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false, ignoreNotifyFocus = false) {
         if (!ignoreSelectCallContactItem) {
             selectCallContactItem(null, true);
         }
@@ -122,12 +150,12 @@ const IframeCases = () => {
             const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
             window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: conversationHistory.messages }, '*');
         }
-        if (caseData != null) {
+        if (caseData != null && !ignoreNotifyFocus) {
             window.parent?.postMessage({ dest: 'Parent', focusContactId: caseData.contactId }, '*');
         }
     }
 
-    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem = false) {
+    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem = false, ignoreNotifyFocus = false) {
         if (!ignoreSelectCaseItem) {
             selectCaseItem(null, true);
         }
@@ -136,7 +164,7 @@ const IframeCases = () => {
         window.parent?.postMessage({ dest: 'Parent', hideCaseDetail: callContactData == null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: callContactData }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: voiceContactData }, '*');
-        if (callContactData != null) {
+        if (callContactData != null && !ignoreNotifyFocus) {
             window.parent?.postMessage({ dest: 'Parent', focusContactId: callContactData.contactId }, '*');
         }
     }

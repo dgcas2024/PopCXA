@@ -125,11 +125,11 @@ const IframeCases = () => {
     }, []);
 
     function selectContactId(contactId: string, ignoreSelectOther = false) {
-        const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0);
+        const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
         if (caseData) {
             selectCaseItem(caseData, ignoreSelectOther, true);
         } else {
-            const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0);
+            const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
             if (callContactData) {
                 selectCallContactItem(callContactData, ignoreSelectOther, true);
             } else {

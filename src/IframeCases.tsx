@@ -212,7 +212,7 @@ const IframeCases = () => {
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: null }, '*');
         setMinusCase(val => {
-            localStorage.setItem('minusCase', val ? 'true' : 'false');
+            localStorage.setItem('minusCase', !val ? 'true' : 'false');
             return !val;
         });
     }

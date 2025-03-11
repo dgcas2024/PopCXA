@@ -174,6 +174,9 @@ const IframeCases = () => {
     useEffect(() => {
         const _minusCase = localStorage.getItem('minusCase') === 'true';
         setMinusCase(_minusCase);
+    }, []);
+
+    useEffect(() => {
         if (agentSession != null && agentSession.status?.toLowerCase() !== 'SessionEnd'.toLowerCase()) {
             window.parent?.postMessage({ dest: 'Parent', minusCases: _minusCase }, '*');
         }

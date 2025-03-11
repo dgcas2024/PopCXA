@@ -365,12 +365,12 @@ const App = () => {
                 setMessageDataArray(arr => [...arr, messageData]);
             } else {
                 let avatar = defaultUserAvatar;
-                if (m.authorUser.id === currentUserInfoRef.current?.user.id) {
+                if (m.authorUser?.id === currentUserInfoRef.current?.user.id) {
                     avatar = currentUserInfoRef.current.user.publicImageUrl;
                 }
                 const messageData: ChatMessage = {
                     chater: {
-                        name: `${m.authorUser.firstName} ${m.authorUser.surname}`,
+                        name: `${m.authorUser?.firstName ?? 'SYSTEM'} ${m.authorUser?.surname ?? ''}`,
                         avatar: avatar,
                         time: new Date(m.createdAt).getTime()
                     },

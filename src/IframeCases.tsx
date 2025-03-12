@@ -87,9 +87,12 @@ const IframeCases = () => {
             const searchParams = new URLSearchParams(window.location.search);
             const _selectContactId = searchParams.get("selectContactId") || "";
             if (_selectContactId) {
-                if (selectContactId(_selectContactId, false, false)) {
-                    setIsFirst(false);
+                const run = async (__selectContactId: string) => {
+                    if (await selectContactId(__selectContactId, false, false)) {
+                        setIsFirst(false);
+                    }
                 }
+                run(_selectContactId);
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,19 +127,25 @@ const IframeCases = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function selectContactId(contactId: string, ignoreSelectOther: boolean, thisUI: boolean) {
-        const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
-        if (caseData) {
-            selectCaseItem(caseData, ignoreSelectOther, thisUI);
-        } else {
-            const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
-            if (callContactData) {
-                selectCallContactItem(callContactData, ignoreSelectOther, thisUI);
+    async function selectContactId(contactId: string, ignoreSelectOther: boolean, thisUI: boolean) {
+        for (let i = 0; i < 15; i++) {
+            const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
+            if (caseData) {
+                await selectCaseItem(caseData, ignoreSelectOther, thisUI);
             } else {
-                return false;
+                const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
+                if (callContactData) {
+                    await selectCallContactItem(callContactData, ignoreSelectOther, thisUI);
+                } else {
+                    await new Promise(rs => {
+                        setTimeout(rs, 1000);
+                    });
+                    continue;
+                }
             }
+            return true;
         }
-        return true;
+        return false;
     }
 
     async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem: boolean, thisUI: boolean) {

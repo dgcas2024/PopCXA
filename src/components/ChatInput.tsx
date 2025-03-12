@@ -13,6 +13,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const [suggestions, setSuggestions] = useState<Array<any>>([]);
     const [filteredSuggestions, setFilteredSuggestions] = useState<Array<any>>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [query, setQuery] = useState<string | null>("");
 
     useEffect(() => {
         //fetch("http://10.120.80.60:44200/ContentTemplate/GetAutoComplete")
@@ -32,12 +33,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
         setSuggestions(data);
     }, []);
 
+    const getHighlightedText = (text: string, highlight: string) => {
+        const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+        return (
+            <React.Fragment>
+                {parts.map((part, index) => part.toLowerCase() === highlight.toLowerCase() ? (<mark key={index}>{part}</mark>) : (part))}
+            </React.Fragment>
+        );
+    };
+
     const handleKeyUp = (e: any) => {
         if (messageInputRef.current?.value?.startsWith("::") === true) {
-            const query = e.target.value.slice(2).toLowerCase();
-            const matches = suggestions.filter((s: any) => s.Content.toLowerCase().indexOf(query) >= 0);
+            const _query = e.target.value.slice(2).toLowerCase();
+            setQuery(_query);
+            const matches = suggestions.filter((s: any) => s.Content.toLowerCase().indexOf(_query) >= 0);
             setFilteredSuggestions(matches);
-            console.log('xxx2', matches);
             setShowSuggestions(true);
         } else {
             setShowSuggestions(false);
@@ -80,7 +90,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             padding: '10px',
                             cursor: 'pointer',
                             backgroundColor: index % 2 === 0 ? 'rgb(253, 253, 253)' : 'rgb(247, 247, 247)',
-                        }}>{suggestion.Content}</li>
+                        }}>{getHighlightedText(suggestion.Content, query ?? '')}</li>
                     ))
                     ) : (
                         <li style={{ padding: '8px' }}>No suggestions</li>

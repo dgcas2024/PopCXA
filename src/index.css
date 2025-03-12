@@ -2,7 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+    font-family: 'Open Sans';
 }
 
 #root > .app {
@@ -40,7 +40,7 @@ button, select {
 }
 
 .profile-info .profile-info-name {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .avatar {
@@ -91,12 +91,12 @@ button, select {
 }
 
 .preview-details > div {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .preview-message {
     color: #666;
-    font-size: 0.8em;
+    font-size: 0.8rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -150,6 +150,7 @@ button, select {
     word-wrap: break-word;
     word-break: break-all;
     overflow-wrap: break-word;
+    font-size: 0.8rem;
 }
 
 .message.received .message-content {
@@ -168,7 +169,7 @@ button, select {
     color: #666;
     position: absolute;
     bottom: -20px;
-    font-size: 0.8em;
+    font-size: 0.8rem;
     white-space: nowrap;
 }
 
@@ -189,7 +190,7 @@ button, select {
 }
 
 .message-time {
-    font-size: 0.8em;
+    font-size: 0.8rem;
     color: #666;
 }
 

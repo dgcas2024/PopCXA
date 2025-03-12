@@ -1,8 +1,12 @@
-import { useEffect, useState, CSSProperties } from "react";
+import {
+    //useEffect,
+    useState,
+    CSSProperties
+} from "react";
 import { } from 'uuid';
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
-    ACDSessionManager,
+    /*ACDSessionManager,*/
 } from "@nice-devone/core-sdk";
 import {
 } from "@nice-devone/common-sdk";
@@ -81,18 +85,16 @@ function SessionConnectionSelect({ setup }: any) {
     };
 
     async function Connect() {
-        if (!ACDSessionManager.instance.hasSessionId) {
-            CXoneAcdClient.instance.initAcdEngagement();
+        try {
+            await CXoneAcdClient.instance.session.startSession({
+                stationId: selectedOption === 'station' ? inputValue : '',
+                stationPhoneNumber: selectedOption === 'phone' ? inputValue : selectedOption === 'softphone' ? 'WebRTC' : ''
+            });
+            await CXoneAcdClient.instance.session.joinSession();
+        } catch {
             try {
-                await CXoneAcdClient.instance.session.startSession({
-                    stationId: selectedOption === 'station' ? inputValue : '',
-                    stationPhoneNumber: selectedOption === 'phone' ? inputValue : selectedOption === 'softphone' ? 'WebRTC' : ''
-                });
-            } catch {
-                try {
-                    CXoneAcdClient.instance.session.joinSession();
-                } catch { }
-            }
+                await CXoneAcdClient.instance.session.joinSession();
+            } catch { }
         }
         await setup();
     }

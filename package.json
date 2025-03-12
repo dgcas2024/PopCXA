@@ -10,9 +10,12 @@
     "@microsoft/signalr": "^8.0.7",
     "@mui/material": "^5.15.10",
     "@mui/styled-engine": "^5.15.9",
-    "@nice-devone/acd-sdk": "^25.1.1",
-    "@nice-devone/digital-sdk": "^25.1.1",
-    "@nice-devone/voice-sdk": "^25.1.1",
+    "@nice-devone/acd-sdk": "^25.1.2",
+    "@nice-devone/digital-sdk": "^25.1.2",
+    "@nice-devone/voice-sdk": "^25.1.2",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.82",
     "@types/react": "^18.2.56",
@@ -26,6 +29,7 @@
     "node-fetch": "^2.6.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.1.1",
     "react-scripts": "^5.0.1",
     "rxjs": "^7.8.1",
     "source-map-loader": "^5.0.0",
@@ -39,6 +43,7 @@
   "scripts": {
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-app-rewired eject"
   },
   "eslintConfig": {

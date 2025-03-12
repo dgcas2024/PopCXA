@@ -17,12 +17,13 @@ import {
     AgentSessionStatus,
     AgentSessionResponse
 } from "@nice-devone/common-sdk";
+import { CXoneClient } from "@nice-devone/agent-sdk";
 import {
     AuthSettings,
     AuthWithCodeReq,
     CXoneAuth,
     AuthStatus,
-    CXoneUser
+    //CXoneUser
 } from "@nice-devone/auth-sdk";
 import { DigitalService, CXoneDigitalClient } from "@nice-devone/digital-sdk";
 import { CXoneVoiceClient } from "@nice-devone/voice-sdk";
@@ -46,6 +47,7 @@ const IframeAuth = ({ iframeText }: any) => {
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
     const [dialNumber, setDialNumber] = useState('');
 
+    const [webRTC, setWebRTC] = useState(false);
     const [authToken, setAuthToken] = useState("");
     const [agentStatus, setAgentStatus] = useState<AgentStateEvent>({} as AgentStateEvent);
     const [agentSession, setAgentSession] = useState<AgentSessionResponse | null>();
@@ -190,31 +192,10 @@ const IframeAuth = ({ iframeText }: any) => {
             setAgentSession(agentSessionChange);
             console.log('onAgentSessionChange', agentSessionChange)
             switch (agentSessionChange.status) {
-                //case AgentSessionStatus.JOIN_SESSION_SUCCESS:
+                case AgentSessionStatus.JOIN_SESSION_SUCCESS:
                 case AgentSessionStatus.SESSION_START: {
                     window.parent?.postMessage({ dest: 'Parent', sessionStarted: true }, '*');
                     console.log("Session started successfully.....");
-
-                    const agentSettingService = await CXoneUser.instance.getAgentSettings()
-                    const cxoneVoiceConnectionOptions = {
-                        agentSettings: agentSettingService,
-                        webRTCType: agentSettingService.webRTCType,
-                        webRTCWssUrls: agentSettingService.webRTCWssUrls,
-                        webRTCServerDomain: agentSettingService.webRTCServerDomain,
-                        webRTCDnis: agentSettingService.webRTCDnis,
-                        webRTCIceUrls: [],
-                    }
-                    try {
-                        if (audioWebRTCRef.current) {
-                            CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, audioWebRTCRef.current, "Poptech CXAgent")
-                            console.log("Connected to WebRTC");
-                        } else {
-                            //alert('Connected to WebRTC error: not found audio tag');
-                            console.error('Connected to WebRTC error: not found audio tag');
-                        }
-                    } catch (e) {
-                        console.error('Connected to WebRTC error', e)
-                    }
                     break;
                 }
                 case AgentSessionStatus.SESSION_END: {
@@ -339,6 +320,36 @@ const IframeAuth = ({ iframeText }: any) => {
     }
 
     useEffect(() => {
+        if (!webRTC && (agentSession?.status === AgentSessionStatus.SESSION_START || agentSession?.status === AgentSessionStatus.JOIN_SESSION_SUCCESS) && currentUserInfo) {
+            const exec = async function () {
+                try {
+                    if (audioWebRTCRef.current) {
+                        const agentSettings = (await CXoneClient.instance.agentSetting.getAgentSettings()) as AgentSettings;
+                        const getUserInfo = (await CXoneClient.instance.cxoneUser.getUserDetails()) as UserInfo;
+                        if (agentSettings && getUserInfo.icAgentId) {
+                            const settings = {
+                                agentId: getUserInfo.icAgentId,
+                                agentSettings: agentSettings,
+                                userInfo: getUserInfo,
+                            };
+                            CXoneVoiceClient.instance.connectServer(settings.agentId, settings.agentSettings, audioWebRTCRef.current, "Poptech CXAgent");
+                            setWebRTC(true);
+                            console.log("Connected to WebRTC");
+                        }
+                    } else {
+                        //alert('Connected to WebRTC error: not found audio tag');
+                        console.error('Connected to WebRTC error: not found audio tag');
+                    }
+                } catch (e) {
+                    console.error('Connected to WebRTC error', e)
+                }
+            }
+            exec();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [agentSession]);
+
+    useEffect(() => {
         console.log('[IframeAuth].useEffect...')
         cxoneAuth.onAuthStatusChange.subscribe((data) => {
             switch (data.status) {
@@ -355,11 +366,9 @@ const IframeAuth = ({ iframeText }: any) => {
 
                     setupEvent();
                     setup();
-                    if (ACDSessionManager.instance.hasSessionId) {
-                        try {
-                            CXoneAcdClient.instance.session.joinSession();
-                        } catch { }
-                    }
+                    try {
+                        CXoneAcdClient.instance.session.joinSession();
+                    } catch { }
                     break;
                 case AuthStatus.NOT_AUTHENTICATED:
                     setAuthState("NOT_AUTHENTICATED");
@@ -398,18 +407,16 @@ const IframeAuth = ({ iframeText }: any) => {
             alert('Error');
             return;
         }
-        if (!ACDSessionManager.instance.hasSessionId) {
-            CXoneAcdClient.instance.initAcdEngagement();
+        try {
+            await CXoneAcdClient.instance.session.startSession({
+                stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',
+                stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
+            });
+            await CXoneAcdClient.instance.session.joinSession();
+        } catch {
             try {
-                await CXoneAcdClient.instance.session.startSession({
-                    stationId: voiceConnection_selectedOption === 'stationId' ? voiceConnection_inputValue : '',
-                    stationPhoneNumber: voiceConnection_selectedOption === 'phoneNumber' ? voiceConnection_inputValue : voiceConnection_selectedOption === 'softphone' ? 'WebRTC' : ''
-                });
-            } catch {
-                try {
-                    CXoneAcdClient.instance.session.joinSession();
-                } catch { }
-            }
+                await CXoneAcdClient.instance.session.joinSession();
+            } catch { }
         }
         await setup();
         voiceConnection_setIsInputDisabled(false);
@@ -523,7 +530,7 @@ const IframeAuth = ({ iframeText }: any) => {
         )
     }
 
-    if (!ACDSessionManager.instance.hasSessionId) {
+    if (agentSession?.status !== AgentSessionStatus.SESSION_START && agentSession?.status !== AgentSessionStatus.JOIN_SESSION_SUCCESS) {
         return (
             <div className="app">
                 <div style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'center', alignItems: 'start', flexDirection: 'column' }}>

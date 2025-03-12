@@ -2,7 +2,9 @@
 /*import { v4 as uuidv4 } from 'uuid';*/
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
-    ACDSessionManager, ConsoleLogAppender,
+    ACDSessionManager,
+    ConsoleLogAppender,
+    AgentSettings
 } from "@nice-devone/core-sdk";
 import {
     AuthToken,
@@ -14,7 +16,8 @@ import {
     CXoneMessageArray,
     AgentLegEvent,
     AgentSessionStatus,
-    AgentSessionResponse
+    AgentSessionResponse,
+    UserInfo
 } from "@nice-devone/common-sdk";
 import {
     AuthSettings,

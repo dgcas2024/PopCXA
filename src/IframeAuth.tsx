@@ -4,7 +4,8 @@ import {
     ACDSessionManager,
     ApiUriConstants,
     HttpUtilService,
-    HttpClient
+    HttpClient,
+    AgentSettings
 } from "@nice-devone/core-sdk";
 import {
     AuthToken,
@@ -15,7 +16,8 @@ import {
     CXoneCase,
     SortingType,
     AgentSessionStatus,
-    AgentSessionResponse
+    AgentSessionResponse,
+    UserInfo
 } from "@nice-devone/common-sdk";
 import { CXoneClient } from "@nice-devone/agent-sdk";
 import {

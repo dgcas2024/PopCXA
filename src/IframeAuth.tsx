@@ -2,6 +2,9 @@
 import { CXoneAcdClient } from "@nice-devone/acd-sdk";
 import {
     ACDSessionManager,
+    ApiUriConstants,
+    HttpUtilService,
+    HttpClient
 } from "@nice-devone/core-sdk";
 import {
     AuthToken,
@@ -38,6 +41,7 @@ const defaultUserAvatar = 'https://app-eu1.brandembassy.com/img/user-default.png
 const IframeAuth = ({ iframeText }: any) => {
     const digitalService = new DigitalService();
     const cxoneAuth = CXoneAuth.instance;
+    const utilService = new HttpUtilService();
 
     const [unavailableCodeArray, setUnavailableCodeArray] = useState<Array<UnavailableCode>>([]);
     const [dialNumber, setDialNumber] = useState('');
@@ -78,6 +82,22 @@ const IframeAuth = ({ iframeText }: any) => {
             status: [{ id: 'new', name: 'new' }, { id: 'open', name: 'open' }, { id: 'pending', name: 'pending' }, { id: 'escalated', name: 'escalated' }, { id: 'resolved', name: 'resolved' }]
         }, true, true);
         console.log('Case data Array', _caseDataArray);
+        for (var i = 0; i < _caseDataArray.data.length; i++) {
+            if (!_caseDataArray.data[i].authorEndUserIdentity) {
+                const baseUrl = cxoneAuth.getCXoneConfig().dfoApiBaseUri;
+                const authToken = cxoneAuth.getAuthToken().accessToken;
+                const url = baseUrl + ApiUriConstants.DIGITAL_CONTACT_DETAILS.replace('{contactId}', _caseDataArray.data[i].id);
+                const reqInit = utilService.initHeader(authToken);
+                const res: any = await HttpClient.get(url, reqInit);
+                try {
+                    _caseDataArray.data[i].authorEndUserIdentity = res.body.customer.identities[0];
+                    _caseDataArray.data[i].authorEndUserIdentity.fullName = (_caseDataArray.data[i].authorEndUserIdentity.firstName ?? '') + ' ' + (_caseDataArray.data[i].authorEndUserIdentity.lastName ?? '')
+                }
+                catch {
+                    //res.body.customer is null
+                }
+            }
+        }
         setCaseDataArray((_caseDataArray.data as Array<any>));
     }
 
@@ -189,7 +209,8 @@ const IframeAuth = ({ iframeText }: any) => {
                             CXoneVoiceClient.instance.connectServer(currentUserInfoRef.current.user.agentId, cxoneVoiceConnectionOptions, audioWebRTCRef.current, "Poptech CXAgent")
                             console.log("Connected to WebRTC");
                         } else {
-                            alert('Connected to WebRTC error: not found audio tag');
+                            //alert('Connected to WebRTC error: not found audio tag');
+                            console.error('Connected to WebRTC error: not found audio tag');
                         }
                     } catch (e) {
                         console.error('Connected to WebRTC error', e)

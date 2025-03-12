@@ -319,3 +319,7 @@ button, select {
         max-width: 85%;
     }
 }
+
+.suggestion-item:hover {
+    background-color: #ddd !important;
+}

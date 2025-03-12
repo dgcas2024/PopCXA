@@ -4,6 +4,7 @@ import { CallContactEvent, CXoneCase, } from "@nice-devone/common-sdk";
 import { } from "@nice-devone/acd-sdk";
 import Call from './Call';
 import { CXoneDigitalContact } from '@nice-devone/digital-sdk';
+import ChatInput from './ChatInput';
 
 function formatDateTime(date: number | Date) {
     let _date = 0;
@@ -725,8 +726,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     })}
                             </select>
                         </div>
-                        <div className="input-container">
-                            <textarea ref={messageInputRef} onKeyDown={messageInputKeyDown} className="message-input" placeholder="Type a message..." id="messageInput"></textarea>
+                        <div className="input-container" style={{ position: 'relative' }}>
+                            <ChatInput messageInputRef={messageInputRef} messageInputKeyDown={messageInputKeyDown}></ChatInput>
                             <button className="send-btn" onClick={sendMessage}>Send</button>
                         </div>
                     </div>

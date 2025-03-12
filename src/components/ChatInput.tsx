@@ -46,7 +46,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         if (messageInputRef.current?.value?.startsWith("::") === true) {
             const _query = e.target.value.slice(2).toLowerCase();
             setQuery(_query);
-            const matches = suggestions.filter((s: any) => s.Content.toLowerCase().indexOf(_query) >= 0);
+            const matches = suggestions.filter((s: any) => s.Content.toLowerCase().indexOf(_query) >= 0 || s.Keyword.toLowerCase().indexOf(_query) >= 0);
             setFilteredSuggestions(matches);
             setShowSuggestions(true);
         } else {
@@ -90,7 +90,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             padding: '10px',
                             cursor: 'pointer',
                             backgroundColor: index % 2 === 0 ? 'rgb(253, 253, 253)' : 'rgb(247, 247, 247)',
-                        }}>{getHighlightedText(suggestion.Content, query ?? '')}</li>
+                        }}>{getHighlightedText(`${suggestion.Keyword} | ${suggestion.Content}`, query ?? '')}</li>
                     ))
                     ) : (
                         <li style={{ padding: '8px' }}>No suggestions</li>

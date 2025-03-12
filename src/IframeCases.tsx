@@ -87,7 +87,7 @@ const IframeCases = () => {
             const searchParams = new URLSearchParams(window.location.search);
             const _selectContactId = searchParams.get("selectContactId") || "";
             if (_selectContactId) {
-                if (selectContactId(_selectContactId)) {
+                if (selectContactId(_selectContactId, false, false)) {
                     setIsFirst(false);
                 }
             }
@@ -111,27 +111,27 @@ const IframeCases = () => {
                     case 'setCurrentCallContactData': setCurrentCallContactData(evt.data.args); break;
                     case 'setAgentLegId': setAgentLegId(evt.data.args); break;
 
-                    case 'selectCaseItem': selectCaseItem(evt.data.args); break;
-                    case 'selectCallContactItem': selectCallContactItem(evt.data.args); break;
-                    case 'selectContactId': selectContactId(evt.data.args); break;
+                    case 'selectCaseItem': selectCaseItem(evt.data.args, false, false); break;
+                    case 'selectCallContactItem': selectCallContactItem(evt.data.args, false, false); break;
+                    case 'selectContactId': selectContactId(evt.data.args, false, false); break;
                 }
             }
             if (evt.data.hideCaseDetail) {
-                selectCallContactItem(null);
-                selectCaseItem(null);
+                selectCallContactItem(null, true, false);
+                selectCaseItem(null, true, false);
             }
         })
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function selectContactId(contactId: string, ignoreSelectOther = false) {
+    function selectContactId(contactId: string, ignoreSelectOther: boolean, thisUI: boolean) {
         const caseData = caseDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
         if (caseData) {
-            selectCaseItem(caseData, ignoreSelectOther, true);
+            selectCaseItem(caseData, ignoreSelectOther, thisUI);
         } else {
             const callContactData = callContactDataArrayRef.current?.filter(x => x.contactId === contactId)?.at(0) ?? null;
             if (callContactData) {
-                selectCallContactItem(callContactData, ignoreSelectOther, true);
+                selectCallContactItem(callContactData, ignoreSelectOther, thisUI);
             } else {
                 return false;
             }
@@ -139,9 +139,9 @@ const IframeCases = () => {
         return true;
     }
 
-    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem = false, ignoreNotifyFocus = false) {
+    async function selectCaseItem(caseData: CXoneCase | null, ignoreSelectCallContactItem: boolean, thisUI: boolean) {
         if (!ignoreSelectCallContactItem) {
-            selectCallContactItem(null, true);
+            selectCallContactItem(null, true, false);
         }
         window.parent?.postMessage({ dest: 'Parent', openCaseDetail: caseData != null }, '*');
         window.parent?.postMessage({ dest: 'Parent', hideCaseDetail: caseData == null }, '*');
@@ -150,21 +150,21 @@ const IframeCases = () => {
             const conversationHistory = await cxoneDigitalContact.loadConversationHistory(caseData.id);
             window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: conversationHistory.messages }, '*');
         }
-        if (caseData != null && !ignoreNotifyFocus) {
+        if (caseData != null && thisUI) {
             window.parent?.postMessage({ dest: 'Parent', focusContactId: caseData.contactId }, '*');
         }
     }
 
-    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem = false, ignoreNotifyFocus = false) {
+    async function selectCallContactItem(callContactData: CallContactEvent | null, ignoreSelectCaseItem: boolean, thisUI: boolean) {
         if (!ignoreSelectCaseItem) {
-            selectCaseItem(null, true);
+            selectCaseItem(null, true, false);
         }
         const voiceContactData = voiceContactDataArrayRef.current.filter(item => item.contactID === callContactData?.contactId)[0];
         window.parent?.postMessage({ dest: 'Parent', openCaseDetail: callContactData != null }, '*');
         window.parent?.postMessage({ dest: 'Parent', hideCaseDetail: callContactData == null }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentCallContactData', args: callContactData }, '*');
         window.parent?.postMessage({ dest: 'Iframe2', command: 'setCurrentVoiceContactData', args: voiceContactData }, '*');
-        if (callContactData != null && !ignoreNotifyFocus) {
+        if (callContactData != null && thisUI) {
             window.parent?.postMessage({ dest: 'Parent', focusContactId: callContactData.contactId }, '*');
         }
     }
@@ -231,7 +231,7 @@ const IframeCases = () => {
                 </div>
                 {!minusCase && callContactDataArray.map((callContactData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.contactId === callContactData.contactId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData)}>
+                        <div className={`case-item ${(currentCallContactData != null && currentCallContactData.contactId === callContactData.contactId ? 'active' : '')}`} onClick={() => selectCallContactItem(callContactData, false, true)}>
                             <div className="case-preview">
                                 <img src={defaultUserAvatar} alt="" className="avatar"></img>
                                 <div className="preview-details">
@@ -245,7 +245,7 @@ const IframeCases = () => {
                 ))}
                 {!minusCase && caseDataArray.map((caseData, index) => (
                     <React.Fragment key={index}>
-                        <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData)}>
+                        <div className={`case-item ${(currentCaseData != null && currentCaseData.id === caseData.id ? 'active' : '')}`} onClick={() => selectCaseItem(caseData, false, true)}>
                             <div className="case-preview">
                                 <img src={caseData.authorEndUserIdentity?.image ?? 'N/A'} alt="" className="avatar"></img>
                                 <div className={`preview-details${caseData.status.toLowerCase() === 'new' || caseData.status.toLowerCase() === 'open' ? ' item-new' : ''}`}>

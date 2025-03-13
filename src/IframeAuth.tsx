@@ -102,7 +102,9 @@ const IframeAuth = ({ iframeText }: any) => {
                 }
             }
         }
-        setCaseDataArray((_caseDataArray.data as Array<any>));
+        const result = _caseDataArray.data as Array<any>;
+        setCaseDataArray(result);
+        return result;
     }
 
     const connectAgentLeg = (agentLegId: string) => {
@@ -286,21 +288,25 @@ const IframeAuth = ({ iframeText }: any) => {
                     window.parent?.postMessage({ dest: 'Parent', digitalContactEvent: digitalContactEvent.case }, '*');
                 }
             }
-            refreshCaseArray(currentUserInfoRef.current);
-            if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
-                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                    setCurrentCaseData(digitalContactEvent.case);
-                    if (digitalContactEvent.case.status === 'closed') {
-                        window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
-                    }
-                } else {
-                    if (digitalContactEvent.isCaseAssigned) {
-                        window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: digitalContactEvent.messages }, '*');
+            const runAsync = async () => {
+                var arr = await refreshCaseArray(currentUserInfoRef.current);
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
+                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        const _case = arr.filter(x => x.id === digitalContactEvent.case.id)[0]
+                        setCurrentCaseData(_case);
+                        if (_case.status === 'closed') {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        }
                     } else {
-                        window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        if (digitalContactEvent.isCaseAssigned) {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'handleSetMessageData', args: digitalContactEvent.messages }, '*');
+                        } else {
+                            window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        }
                     }
                 }
             }
+            runAsync();
         });
     }
 

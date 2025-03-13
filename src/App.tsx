@@ -134,7 +134,9 @@ const App = () => {
                 }
             }
         }
-        setCaseDataArray((_caseDataArray.data as Array<any>));
+        const result = _caseDataArray.data as Array<any>;
+        setCaseDataArray(result);
+        return result;
     }
 
     const setupEvent = function () {
@@ -235,22 +237,26 @@ const App = () => {
         });
         CXoneDigitalClient.instance.digitalContactManager.onDigitalContactEvent?.subscribe((digitalContactEvent) => {
             console.log("onDigitalContactEvent", digitalContactEvent);
-            refreshCaseArray(currentUserInfoRef.current);
-            if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
-                if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                    setCurrentCaseData(digitalContactEvent.case);
-                    if (digitalContactEvent.case.status === 'closed') {
-                        selectCaseItem(null);
-                    }
-                } else {
-                    if (digitalContactEvent.isCaseAssigned) {
-                        setMessageDataArray([]);
-                        handleSetMessageData(digitalContactEvent.messages);
+            const runAsync = async () => {
+                const arr = await refreshCaseArray(currentUserInfoRef.current);
+                if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
+                    if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
+                        const _case = arr.filter(x => x.id === digitalContactEvent.case.id)[0]
+                        setCurrentCaseData(_case);
+                        if (_case.status === 'closed') {
+                            selectCaseItem(null);
+                        }
                     } else {
-                        selectCaseItem(null);
+                        if (digitalContactEvent.isCaseAssigned) {
+                            setMessageDataArray([]);
+                            handleSetMessageData(digitalContactEvent.messages);
+                        } else {
+                            selectCaseItem(null);
+                        }
                     }
                 }
             }
+            runAsync();
         });
     }
 

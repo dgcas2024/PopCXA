@@ -292,10 +292,12 @@ const IframeAuth = ({ iframeText }: any) => {
                 var arr = await refreshCaseArray(currentUserInfoRef.current);
                 if (currentCaseDataRef.current?.id === digitalContactEvent.caseId) {
                     if (digitalContactEvent.eventDetails.eventType === "CaseStatusChanged") {
-                        const _case = arr.filter(x => x.id === digitalContactEvent.case.id)[0]
-                        setCurrentCaseData(_case);
-                        if (_case.status === 'closed') {
+                        if (digitalContactEvent.case.status === 'closed') {
+                            setCurrentCaseData(digitalContactEvent.case);
                             window.parent?.postMessage({ dest: 'Iframe2', command: 'selectCaseItem', args: null }, '*');
+                        } else {
+                            const _case = arr.filter(x => x.id === digitalContactEvent.case.id)[0]
+                            setCurrentCaseData(_case);
                         }
                     } else {
                         if (digitalContactEvent.isCaseAssigned) {

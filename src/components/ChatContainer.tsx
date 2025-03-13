@@ -728,7 +728,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         </div>
                         <div className="input-container" style={{ position: 'relative' }}>
                             <ChatInput messageInputRef={messageInputRef} messageInputKeyDown={messageInputKeyDown}></ChatInput>
-                            <button className="send-btn" onClick={sendMessage}>Send</button>
+                            <button className="send-btn" onClick={sendMessage}><i className="fa fa-paper-plane"></i></button>
                         </div>
                     </div>
                 </React.Fragment>

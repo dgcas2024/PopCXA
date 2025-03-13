@@ -229,12 +229,12 @@ const IframeCases = () => {
     return (
         <div className={`app`}>
             <div ref={caseListDivRef} className="case-list">
-                <span onClick={handleMinus} className="sidebar-collapse-btn"><i className={`fas fa-${minusCase ? 'plus' : 'minus'}`} style={{ fontSize: '16px', color: 'rgb(102, 102, 102)' }}></i></span>
+                <span onClick={handleMinus} className="sidebar-collapse-btn"><i className={`fas fa-${minusCase ? 'plus' : 'minus'}`} style={{ fontSize: '16px', color: '#eee' }}></i></span>
                 {/*<span id="sidebar-collapse-open" className="sidebar-collapse-btn"><i className="fas fa-bars" style={{ fontSize: '16px', color: 'rgb(102, 102, 102)' }}></i></span>*/}
                 <div className="agent-profile">
                     <div className="profile-info">
                         <div>
-                            <div className="profile-info-name" style={{ fontWeight: 'bold' }}>{`${callContactDataArray.length} Calls, ${caseDataArray.length} Chats`}</div>
+                            <div className="profile-info-name" style={{ fontWeight: 'bold' }}>{`${callContactDataArray.length} Calls`} <i className="fa fa-phone"></i> | {`${caseDataArray.length} Chats`} <i className="fa fa-comments"></i></div>
                         </div>
                     </div>
                 </div>

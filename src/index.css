@@ -56,7 +56,7 @@ button, select {
     overflow-x: hidden;
     overflow-y: auto;
     width: 300px;
-    border-right: 1px solid #ddd;
+    border-left: 1px solid #ddd;
     display: flex;
     flex-direction: column;
     background: white;
@@ -107,19 +107,25 @@ button, select {
     flex: 1;
     display: flex;
     flex-direction: column;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
 }
 
 .chat-header {
     padding: 15px;
-    background: #f0f2f5;
-    border-bottom: 1px solid #ddd;
+    background: #36a3f7;
+    color: #fff;
+}
+
+.chat-header .message-time {
+    color: #eee;
 }
 
 .chat-messages {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    background: #e5ddd5;
+    background: #f9f9f9;
 }
 
 .message {
@@ -162,7 +168,7 @@ button, select {
 }
 
 .message.sent .message-content {
-    background: #dcf8c6;
+    background: #e9f7ef;
 }
 
 .message-name-time {
@@ -261,7 +267,7 @@ button, select {
 
 .send-btn {
     padding: 0 20px;
-    background: #128C7E;
+    background: #34bfa3;
     color: white;
     border: none;
     border-radius: 5px;
@@ -270,7 +276,7 @@ button, select {
 }
 
 .send-btn:hover {
-    background: #0e7a6d;
+    background: #2ca189;
 }
 
 .sidebar-collapse-btn {

@@ -585,7 +585,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 zIndex: 1000
             }}
         >
-            <i className="fas fa-times" style={{ fontSize: '16px', color: '#666' }}></i>
+            <i className="fas fa-times" style={{ fontSize: '16px', color: '#eee' }}></i>
         </button>
     )
 

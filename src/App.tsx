@@ -550,7 +550,7 @@ const App = () => {
                         <img src={currentUserInfo?.user?.publicImageUrl ?? defaultUserAvatar} alt="Agent" className="avatar" />
                         <div>
                             <div className="profile-info-name">{currentUserInfo?.user?.fullName ?? 'N/A'}</div>
-                            <div style={{ fontSize: '0.8em', color: '#666' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
+                            <div style={{ fontSize: '0.8em', color: '#eee' }} data-starttime={agentStatus?.agentStateData?.StartTime}>00:00:00</div>
                         </div>
                     </div>
                     {/*<div style={{ display: 'flex', gap: '5px' }}>*/}

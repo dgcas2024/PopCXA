@@ -564,29 +564,57 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
     }
 
+    const onLink = () => {
+        window.parent?.postMessage({ dest: 'Parent', digitalContactEvent: currentCaseData ?? currentCallContactData }, '*');
+    }
+
     const closeButton = onClose && (
-        <button
-            onClick={onClose}
-            style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                transition: 'background-color 0.2s',
-                zIndex: 1000
-            }}
-        >
-            <i className="fas fa-times" style={{ fontSize: '16px', color: '#eee' }}></i>
-        </button>
+        <>
+            <button
+                onClick={onClose}
+                style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    transition: 'background-color 0.2s',
+                    zIndex: 1000
+                }}
+            >
+                <i className="fas fa-times" style={{ fontSize: '16px', color: '#eee' }}></i>
+            </button>
+            <button
+                onClick={onLink}
+                style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '35px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    transition: 'background-color 0.2s',
+                    zIndex: 1000
+                }}
+            >
+                <i className="fas fa-link" style={{ fontSize: '16px', color: '#eee' }}></i>
+            </button>
+        </>
     )
 
     return (
